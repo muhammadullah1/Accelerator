@@ -1,0 +1,37 @@
+{
+  "name": "classroom",
+  "version": "2.0.0",
+  "description": "WebRTC Collaboration/Presentation Tool",
+  "main": "server.js",
+  "directories": {},
+  "scripts": {
+    "start": "nodemon server.js",
+    "test": "echo \"No tests needed!\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jmm-technologies"
+  },
+  "keywords": [
+    "webrtc",
+    "collaboration",
+    "conference",
+    "accelerator"
+  ],
+  "dependencies": {
+    "dompurify": "^2.2.2",
+    "express": "^4.17.3",
+    "fluent-ffmpeg": "^2.1.2",
+    "formidable": "^1.2.2",
+    "fs-extra": "^8.1.0",
+    "jsdom": "^16.5.0",
+    "puppeteer": "^2.1.1",
+    "socket.io": "^2.5.0",
+    "yauzl": "^2.10.0"
+  },
+  "author": "JMM Inovations",
+  "license": "GPL-3.0-or-later",
+  "devDependencies": {
+    "nodemon": "^2.0.21"
+  }
+}
