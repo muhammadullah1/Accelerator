@@ -33,249 +33,270 @@ var loadMCUConnection = function (roomToConnect, connectionReadyCallback) {
     });
 
     myMCU.joinRoom(username, roomToConnect["roomName"], function (err) {
-        if (err) {
-            $("#joinRoomError").text(err.toString())
-        } else {
-            setUserColor(ownSocketId, ownColor);
-            myMCU.on("newStreamPublished", function (content) {
-                console.log(content)
-                // var roomname = content["roomname"];
-                // var attributes = content["attributes"];
-                var streamId = content["streamId"];
-                var socketId = content["socketId"];
-                var hasVideo = content["hasVideo"];
-
-                if (ownSocketId != socketId || content["itemId"]) {
-                    myMCU.subscribeToStream(streamId, function (err) {
-                        if (err) {
-                            $("#" + streamId).remove();
-                            writeToChat("StreamError", "Was not able to add stream:" + streamId);
-                            console.error("StreamError", "Was not able to add stream:" + streamId, err);
-                        } else {
-                            console.log("StreamInfo", "Connected to stream:" + streamId);
-                        }
-                    })
-                } else {
-                    if (hasVideo) {
-                        writeToChat("Server", "Videostream connected!");
-                    }
-
-                }
-            })
-
-            myMCU.on("streamAdded", function (stream) {
-                var streamAttr = stream.streamAttributes;
-
-                console.log(stream)
-
-                var streamId = stream.id ? stream.id.replace("{", "").replace("}", "") : streamAttr["streamId"];
-
-                if (!stream.hasVideo && stream.hasAudio) {
-                    console.log("ADD GLOBAL AUDIO!")
-                    $("#mediaC").append('<div id="audio' + streamId + '" class="audiocontainer" style="width: 320px; height: 217px; display:none;"></div>');
-                    myMCU.showMediaStream("audio" + streamId, stream);
-
-                    if (getBrowser() == "blinkEngin") {
-                        if (prevOutputDevice && $('#audio' + streamId).find("audio")[0].setSinkId) {
-                            $('#audio' + streamId).find("audio")[0].setSinkId(prevOutputDevice); //Set audio output chrome  
-                        } else {
-                            $('#audio' + streamId).find("audio")[0].setSinkId("default"); //Set audio output device to default in chrome  
-                        }
-                    }
-                    return;
-                }
-
-
-                var streamSocketId = streamAttr.streamSocketId || streamAttr.socketId;
-
-                if (streamAttr && streamAttr.screenshare) {   //Screenshare
-                    apendScreenshareStream(stream, streamAttr);
-                } else if (stream.hasVideo || streamAttr.hasVideo) {  //Video Stream
-                    console.log("ADD VIDEO!")
-                    $("#video" + streamId).remove(); //just in case so no double cam
-                    if (streamAttr && streamAttr["itemId"]) { //Webcamstream in userPitem
-                        if (streamSocketId == ownSocketId) {
-                            writeToChat("Server", "Webcamstream connected!");
-                            $("#" + streamAttr["itemId"]).find(".saveFrameBtn").show();
-                            $("#" + streamAttr["itemId"]).find(".saveFrameBtn").click(function () {
-                                var _this = this;
-                                $(_this).hide();
-                                var videoEl = document.getElementById(streamId);
-                                const canvas = document.createElement("canvas");
-                                canvas.width = videoEl.clientWidth;
-                                canvas.height = videoEl.clientHeight;
-                                canvas.getContext('2d').drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-
-                                var url = canvas.toDataURL();
-                                writeToChat("Server", "Frame is uploading...");
-                                $.ajax({
-                                    type: 'POST',
-                                    url: document.URL.substr(0, document.URL.lastIndexOf('/')) + '/upload',
-                                    data: {
-                                        'imagedata': url,
-                                        'room': roomImIn["roomName"],
-                                        'name': "webcam",
-                                        'userId': ownSocketId,
-                                        'uploadType': "singleFileUpload"
-                                    },
-                                    success: function (msg) {
-                                        $(_this).show();
-                                        writeToChat("Server", "Frame of video saved! (Check the Filetable on the right!)");
-                                        if (!$("#showFiles").hasClass("alert-danger")) {
-                                            $("#showFiles").click();
-                                        }
-                                    },
-                                    error: function (err) {
-                                        $(_this).show();
-                                        writeToChat("Error", "Failed to upload frame: " + JSON.stringify(err));
-                                    }
-                                });
-                            });
-                        }
-
-                        $("#" + streamAttr["itemId"]).find(".innerContent").html('<div id="video' + streamId + '" class="" style="width: 100%; height: 100%; z-index:10;"></div>');
-                        myMCU.showMediaStream("video" + streamId, stream, 'height:225px; position: relative; top:0px;');
-
-                    } else {
-                        var videoElement = $('<div id="video' + streamId + '" class="direktVideoContainer socketId' + streamSocketId + '" style="height: 225px; width: 100%; z-index:10;"></div>');
-                        $("#" + streamSocketId).find(".videoContainer").append(videoElement);
-                        myMCU.showMediaStream("video" + streamId, stream, 'width:300px; height:225px; position: absolute; top:0px;');
-                        $("#" + streamSocketId).find(".webcamfullscreen").show();
-                        $("#" + streamSocketId).find(".popoutVideoBtn").show();
-                        updateConfGridView();
-                    }
-
-                }
-            });
-
-            refreshMuteUnmuteAll();
-
-            myMCU.on("streamUnpublished", function (streamAttributes) {
-                console.log("streamUnpublished", streamAttributes)
-                var socketId = streamAttributes.socketId;
-                var streamId = streamAttributes.streamId;
-                var screenshare = streamAttributes.screenshare;
-                if (socketId) {
-                    if (screenshare) {
-                        $(".wait4ScreenShareTxt").show();
-                        if (ownSocketId == roomImIn["moderator"])
-                            $("#screenshareQuallyTable").show();
-                        $("#startScreenShareBtn").text("Start Screenshare!");
-                        $("#screenShareStream").hide();
-                        $("#screenShareStream").empty();
-                    } else {
-                        var element = $("#" + streamId)[0];
-                        $(element).parents(".videoContainer").appendTo($("#" + socketId));
-                        $(element).parents(".videoContainer").css({ "position": "relative", "top": "0px", "left": "0px", "cursor": "default" });
-                        $("#" + socketId).find(".popoutVideoBtn").attr("popedOut", false);
-                        $(element).parents(".direktVideoContainer").remove();
-                        $(element).remove();
-
-                        if (!streamAttributes["itemId"]) { //Dont hide if it is a userPitem stream
-                            $("#" + socketId).find(".webcamfullscreen").hide();
-                            $("#" + socketId).find(".popoutVideoBtn").hide();
-                            updateConfGridView();
-                        }
-                    }
-                }
-            })
-
-            myMCU.on("disconnect", function () {
-                writeToChat("ERROR", 'Network to server disconnected! If you encounter problems, try to refresh the page.');
-            });
-
-            writeToChat("Server", "Try to stream microfone!");
-
-            if (localAudioStream) {
-                myMCU.publishStreamToRoom(roomToConnect["roomName"], localAudioStream, function (err) {
+        var currentUrl = window.location
+        console.log("gettttttttttttttttttt urlllllllllllllllllllllllllllllll dataaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        console.log(currentUrl)
+        $.ajax({
+            url: 'https://jsonplaceholder.typicode.com/users/1',
+            method: 'GET',
+            success: function (response) {
+                console.log("apiiiiiiiiiiii callllllllllllllllll successsssssssssssssss")
+                console.log(response);
+                if (response.id === 1) {
                     if (err) {
-                        $("#joinRoomError").text("Error: Could not connect to room. Try to reload the page and connect again.");
-                        console.log("ERROR", "Stream could not be published!: ", err)
+                        $("#joinRoomError").text(err.toString())
                     } else {
-                        writeToChat("Server", "Local Audiostream Connected!");
-                        writeToChat("Server", "You can not communicate unless you get the microphone or press the horn!");
-                        $("#" + ownSocketId).find(".UserRightTD").css({ "background": "rgba(3, 169, 244, 0)" });
+                        setUserColor(ownSocketId, ownColor);
+                        myMCU.on("newStreamPublished", function (content) {
+                            console.log(content)
+                            // var roomname = content["roomname"];
+                            // var attributes = content["attributes"];
+                            var streamId = content["streamId"];
+                            var socketId = content["socketId"];
+                            var hasVideo = content["hasVideo"];
 
-
-                        //Calc the current volume!
-                        var audioAontext = window.AudioContext || window.webkitAudioContext;
-                        var context = new audioAontext();
-                        var microphone = context.createMediaStreamSource(localAudioStream);
-                        var dest = context.createMediaStreamDestination();
-
-                        gainNode = context.createGain();
-
-                        var analyser = context.createAnalyser();
-                        analyser.fftSize = 2048;
-                        var bufferLength = analyser.frequencyBinCount;
-                        var dataArray = new Uint8Array(bufferLength);
-                        analyser.getByteTimeDomainData(dataArray);
-
-                        var audioVolume = 0;
-                        var oldAudioVolume = 0;
-                        function calcVolume() {
-                            requestAnimationFrame(calcVolume);
-                            analyser.getByteTimeDomainData(dataArray);
-                            var mean = 0;
-                            for (var i = 0; i < dataArray.length; i++) {
-                                mean += Math.abs(dataArray[i] - 127);
-                            }
-                            mean /= dataArray.length;
-                            mean = Math.round(mean);
-                            if (mean < 2)
-                                audioVolume = 0;
-                            else if (mean < 5)
-                                audioVolume = 1;
-                            else
-                                audioVolume = 2;
-
-                            if (audioVolume != oldAudioVolume) {
-                                sendAudioVolume(audioVolume);
-                                oldAudioVolume = audioVolume;
-                            }
-                        }
-                        calcVolume();
-                        microphone.connect(gainNode);
-                        gainNode.connect(analyser); //get sound  
-                        analyser.connect(dest);
-                        //localAudioStream = dest.stream;
-                        //Calc the current volume END!
-                        initOtherStreams();
-
-                        setTimeout(function () {
-                            if (typeof (getLocalStorage("introBasicTourShown")) == "undefined") {
-                                showTour("introBasicTour", false); //start intro tour
-                            }
-                            setLocalStorage("introBasicTourShown", true);
-                        }, 1000)
-                    }
-                });
-            } else {
-                writeToChat("ERROR", "Problem to getting your Audio. If you want to talk, go back to the Roomlist and do the Audiosetup!");
-                initOtherStreams();
-            }
-
-            function initOtherStreams() {
-                connectionReadyCallback();
-                myMCU.getAllStreamsFromRoom(roomToConnect["roomName"], function (allStreamsFromRoom) {
-                    console.log(allStreamsFromRoom);
-                    for (var i in allStreamsFromRoom) {
-                        if (ownSocketId != allStreamsFromRoom[i].socketId) { //Dont subscribe to own stream
-                            (function () {
-                                if ($("#" + allStreamsFromRoom[i].streamId).length == 0) {
-                                    myMCU.subscribeToStream(allStreamsFromRoom[i]["streamId"], function (err) {
-                                        if (err) {
-                                            writeToChat("StreamError", "Was not able to add stream from:" + allStreamsFromRoom[i].username);
-                                        }
-                                    })
+                            if (ownSocketId != socketId || content["itemId"]) {
+                                myMCU.subscribeToStream(streamId, function (err) {
+                                    if (err) {
+                                        $("#" + streamId).remove();
+                                        writeToChat("StreamError", "Was not able to add stream:" + streamId);
+                                        console.error("StreamError", "Was not able to add stream:" + streamId, err);
+                                    } else {
+                                        console.log("StreamInfo", "Connected to stream:" + streamId);
+                                    }
+                                })
+                            } else {
+                                if (hasVideo) {
+                                    writeToChat("Server", "Videostream connected!");
                                 }
-                            })();
+
+                            }
+                        })
+
+                        myMCU.on("streamAdded", function (stream) {
+                            var streamAttr = stream.streamAttributes;
+
+                            console.log(stream)
+
+                            var streamId = stream.id ? stream.id.replace("{", "").replace("}", "") : streamAttr["streamId"];
+
+                            if (!stream.hasVideo && stream.hasAudio) {
+                                console.log("ADD GLOBAL AUDIO!")
+                                $("#mediaC").append('<div id="audio' + streamId + '" class="audiocontainer" style="width: 320px; height: 217px; display:none;"></div>');
+                                myMCU.showMediaStream("audio" + streamId, stream);
+
+                                if (getBrowser() == "blinkEngin") {
+                                    if (prevOutputDevice && $('#audio' + streamId).find("audio")[0].setSinkId) {
+                                        $('#audio' + streamId).find("audio")[0].setSinkId(prevOutputDevice); //Set audio output chrome  
+                                    } else {
+                                        $('#audio' + streamId).find("audio")[0].setSinkId("default"); //Set audio output device to default in chrome  
+                                    }
+                                }
+                                return;
+                            }
+
+
+                            var streamSocketId = streamAttr.streamSocketId || streamAttr.socketId;
+
+                            if (streamAttr && streamAttr.screenshare) {   //Screenshare
+                                apendScreenshareStream(stream, streamAttr);
+                            } else if (stream.hasVideo || streamAttr.hasVideo) {  //Video Stream
+                                console.log("ADD VIDEO!")
+                                $("#video" + streamId).remove(); //just in case so no double cam
+                                if (streamAttr && streamAttr["itemId"]) { //Webcamstream in userPitem
+                                    if (streamSocketId == ownSocketId) {
+                                        writeToChat("Server", "Webcamstream connected!");
+                                        $("#" + streamAttr["itemId"]).find(".saveFrameBtn").show();
+                                        $("#" + streamAttr["itemId"]).find(".saveFrameBtn").click(function () {
+                                            var _this = this;
+                                            $(_this).hide();
+                                            var videoEl = document.getElementById(streamId);
+                                            const canvas = document.createElement("canvas");
+                                            canvas.width = videoEl.clientWidth;
+                                            canvas.height = videoEl.clientHeight;
+                                            canvas.getContext('2d').drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+                                            var url = canvas.toDataURL();
+                                            writeToChat("Server", "Frame is uploading...");
+                                            $.ajax({
+                                                type: 'POST',
+                                                url: document.URL.substr(0, document.URL.lastIndexOf('/')) + '/upload',
+                                                data: {
+                                                    'imagedata': url,
+                                                    'room': roomImIn["roomName"],
+                                                    'name': "webcam",
+                                                    'userId': ownSocketId,
+                                                    'uploadType': "singleFileUpload"
+                                                },
+                                                success: function (msg) {
+                                                    $(_this).show();
+                                                    writeToChat("Server", "Frame of video saved! (Check the Filetable on the right!)");
+                                                    if (!$("#showFiles").hasClass("alert-danger")) {
+                                                        $("#showFiles").click();
+                                                    }
+                                                },
+                                                error: function (err) {
+                                                    $(_this).show();
+                                                    writeToChat("Error", "Failed to upload frame: " + JSON.stringify(err));
+                                                }
+                                            });
+                                        });
+                                    }
+
+                                    $("#" + streamAttr["itemId"]).find(".innerContent").html('<div id="video' + streamId + '" class="" style="width: 100%; height: 100%; z-index:10;"></div>');
+                                    myMCU.showMediaStream("video" + streamId, stream, 'height:225px; position: relative; top:0px;');
+
+                                } else {
+                                    var videoElement = $('<div id="video' + streamId + '" class="direktVideoContainer socketId' + streamSocketId + '" style="height: 225px; width: 100%; z-index:10;"></div>');
+                                    $("#" + streamSocketId).find(".videoContainer").append(videoElement);
+                                    myMCU.showMediaStream("video" + streamId, stream, 'width:300px; height:225px; position: absolute; top:0px;');
+                                    $("#" + streamSocketId).find(".webcamfullscreen").show();
+                                    $("#" + streamSocketId).find(".popoutVideoBtn").show();
+                                    updateConfGridView();
+                                }
+
+                            }
+                        });
+
+                        refreshMuteUnmuteAll();
+
+                        myMCU.on("streamUnpublished", function (streamAttributes) {
+                            console.log("streamUnpublished", streamAttributes)
+                            var socketId = streamAttributes.socketId;
+                            var streamId = streamAttributes.streamId;
+                            var screenshare = streamAttributes.screenshare;
+                            if (socketId) {
+                                if (screenshare) {
+                                    $(".wait4ScreenShareTxt").show();
+                                    if (ownSocketId == roomImIn["moderator"])
+                                        $("#screenshareQuallyTable").show();
+                                    $("#startScreenShareBtn").text("Start Screenshare!");
+                                    $("#screenShareStream").hide();
+                                    $("#screenShareStream").empty();
+                                } else {
+                                    var element = $("#" + streamId)[0];
+                                    $(element).parents(".videoContainer").appendTo($("#" + socketId));
+                                    $(element).parents(".videoContainer").css({ "position": "relative", "top": "0px", "left": "0px", "cursor": "default" });
+                                    $("#" + socketId).find(".popoutVideoBtn").attr("popedOut", false);
+                                    $(element).parents(".direktVideoContainer").remove();
+                                    $(element).remove();
+
+                                    if (!streamAttributes["itemId"]) { //Dont hide if it is a userPitem stream
+                                        $("#" + socketId).find(".webcamfullscreen").hide();
+                                        $("#" + socketId).find(".popoutVideoBtn").hide();
+                                        updateConfGridView();
+                                    }
+                                }
+                            }
+                        })
+
+                        myMCU.on("disconnect", function () {
+                            writeToChat("ERROR", 'Network to server disconnected! If you encounter problems, try to refresh the page.');
+                        });
+
+                        writeToChat("Server", "Try to stream microfone!");
+
+                        if (localAudioStream) {
+                            myMCU.publishStreamToRoom(roomToConnect["roomName"], localAudioStream, function (err) {
+                                if (err) {
+                                    $("#joinRoomError").text("Error: Could not connect to room. Try to reload the page and connect again.");
+                                    console.log("ERROR", "Stream could not be published!: ", err)
+                                } else {
+                                    writeToChat("Server", "Local Audiostream Connected!");
+                                    writeToChat("Server", "You can not communicate unless you get the microphone or press the horn!");
+                                    $("#" + ownSocketId).find(".UserRightTD").css({ "background": "rgba(3, 169, 244, 0)" });
+
+
+                                    //Calc the current volume!
+                                    var audioAontext = window.AudioContext || window.webkitAudioContext;
+                                    var context = new audioAontext();
+                                    var microphone = context.createMediaStreamSource(localAudioStream);
+                                    var dest = context.createMediaStreamDestination();
+
+                                    gainNode = context.createGain();
+
+                                    var analyser = context.createAnalyser();
+                                    analyser.fftSize = 2048;
+                                    var bufferLength = analyser.frequencyBinCount;
+                                    var dataArray = new Uint8Array(bufferLength);
+                                    analyser.getByteTimeDomainData(dataArray);
+
+                                    var audioVolume = 0;
+                                    var oldAudioVolume = 0;
+                                    function calcVolume() {
+                                        requestAnimationFrame(calcVolume);
+                                        analyser.getByteTimeDomainData(dataArray);
+                                        var mean = 0;
+                                        for (var i = 0; i < dataArray.length; i++) {
+                                            mean += Math.abs(dataArray[i] - 127);
+                                        }
+                                        mean /= dataArray.length;
+                                        mean = Math.round(mean);
+                                        if (mean < 2)
+                                            audioVolume = 0;
+                                        else if (mean < 5)
+                                            audioVolume = 1;
+                                        else
+                                            audioVolume = 2;
+
+                                        if (audioVolume != oldAudioVolume) {
+                                            sendAudioVolume(audioVolume);
+                                            oldAudioVolume = audioVolume;
+                                        }
+                                    }
+                                    calcVolume();
+                                    microphone.connect(gainNode);
+                                    gainNode.connect(analyser); //get sound  
+                                    analyser.connect(dest);
+                                    //localAudioStream = dest.stream;
+                                    //Calc the current volume END!
+                                    initOtherStreams();
+
+                                    setTimeout(function () {
+                                        if (typeof (getLocalStorage("introBasicTourShown")) == "undefined") {
+                                            showTour("introBasicTour", false); //start intro tour
+                                        }
+                                        setLocalStorage("introBasicTourShown", true);
+                                    }, 1000)
+                                }
+                            });
+                        } else {
+                            writeToChat("ERROR", "Problem to getting your Audio. If you want to talk, go back to the Roomlist and do the Audiosetup!");
+                            initOtherStreams();
+                        }
+
+                        function initOtherStreams() {
+                            connectionReadyCallback();
+                            myMCU.getAllStreamsFromRoom(roomToConnect["roomName"], function (allStreamsFromRoom) {
+                                console.log(allStreamsFromRoom);
+                                for (var i in allStreamsFromRoom) {
+                                    if (ownSocketId != allStreamsFromRoom[i].socketId) { //Dont subscribe to own stream
+                                        (function () {
+                                            if ($("#" + allStreamsFromRoom[i].streamId).length == 0) {
+                                                myMCU.subscribeToStream(allStreamsFromRoom[i]["streamId"], function (err) {
+                                                    if (err) {
+                                                        writeToChat("StreamError", "Was not able to add stream from:" + allStreamsFromRoom[i].username);
+                                                    }
+                                                })
+                                            }
+                                        })();
+                                    }
+                                }
+                            })
                         }
                     }
-                })
+                }
+            },
+            error: function (xhr, status, error) {
+                console.log("apiiiiiiiiiiii callllllllllllllllll erorrrrrrrrrrrrrrrrrrrrrrrrr")
+                console.error(error);
+                alert(error);
+
             }
-        }
+        });
     })
+
+
 }
 
 function sendGetAllRooms() {
@@ -1042,7 +1063,7 @@ function initSocketIO() {
                     setTimeout(checkYTReady, 100)
                 }
             }
-            checkYTReady();            
+            checkYTReady();
 
             function execYtCommand() {
                 if (content.key == "loadVideo") {
@@ -1060,11 +1081,11 @@ function initSocketIO() {
         });
 
         signaling_socket.on('changeTab', function (content) {
-            
+
 
             var tab = content["tab"];
 
-            if(currentTab == "#conf" && tab != currentTab) { //Coming from conf tab
+            if (currentTab == "#conf" && tab != currentTab) { //Coming from conf tab
                 updateConfGridView(true)
             }
 
@@ -1104,10 +1125,10 @@ function initSocketIO() {
             $('.mainTab.alert-danger').removeClass("alert-danger");
             $('.mainTab[tabtarget="' + currentTab + '"]').addClass("alert-danger");
 
-            if(currentTab == "#conf") {
+            if (currentTab == "#conf") {
                 updateConfGridView()
             }
-            
+
         });
 
         signaling_socket.on('audioVolume', function (content) {
