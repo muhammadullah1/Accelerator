@@ -17,8 +17,8 @@ $(function () { //Document ready
 	$.material.init();
 	if (!signaling_socket)
 		initSocketIO(); //Init SocketIO Server
-
 	showPage("#loginPage");
+	console.log("---------------------**************#@@@@@@@@*************--------------------------------")
 	/* LOGIN PAGE */
 	$("#loginBtn").click(function () {
 		username = cleanString($("#inputUser").val());
@@ -403,8 +403,8 @@ $(function () { //Document ready
 		var romname = cleanString($("#createNewRoomInput").val().trim());
 		romname = romname.replaceAll(".", "_");
 		romname = romname.replaceAll("#", "_");
-		for(var i in allRooms) {
-			if(allRooms[i].roomName.split("###")[0] == romname) {
+		for (var i in allRooms) {
+			if (allRooms[i].roomName.split("###")[0] == romname) {
 				return alert("Roomname already excits! Please use a different one!")
 			}
 		}
