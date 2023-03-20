@@ -24,35 +24,10 @@ var urlSplit = url.split("/");
 var subdir = "";
 for (var i = 3; i < urlSplit.length; i++) {
     subdir = subdir + '/' + urlSplit[i];
-    console.log('subdirrrr', subdir)
+    console.log('subdirrrr', subdir);
 }
-var user = [];
-var currentUrl = window.location;
-console.log("get url data")
-console.log(currentUrl)
-$.ajax({
-    url: 'https://jsonplaceholder.typicode.com/users/2',
-    method: 'GET',
-    async: false,
-    success: function (response) {
-        console.log("apiiiiiiiiiiii callllllllllllllllll successsssssssssssssss")
-        console.log(response);
-        if (response) {
-            user.push(response)
-        }
-    },
-    error: function (xhr, status, error) {
-        // code to handle errors
-        showPage("#invalidUserPage");
-        console.error(status + ': ' + error);
-    }
-});
-
-console.log("---------------********---------------")
-console.log(user);
 
 var loadMCUConnection = function (roomToConnect, connectionReadyCallback) {
-    ("---------------------*****123564879123456789132546987**--------------------------------")
     myMCU.on("iceFailed", function (peerId) {
         $("#joinRoomError").text("IceFailedError: Could not connect to media streaming server!")
     });
@@ -302,9 +277,11 @@ var loadMCUConnection = function (roomToConnect, connectionReadyCallback) {
     })
 }
 
+
 function sendGetAllRooms() {
     signaling_socket.emit('getAllRooms');
 }
+
 function setUserAttr(username, passwort) {
     signaling_socket.emit('setUserAttr',
         {
@@ -617,6 +594,7 @@ function sendDeleteNewRoom(roomName, roomId) {
 }
 
 var signaling_socket = null;
+
 
 function initSocketIO() {
     console.log("Connecting to signaling server");

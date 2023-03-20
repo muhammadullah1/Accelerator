@@ -12,13 +12,36 @@ var camera3D = false;
 var prevOutputDevice = localStorage.getItem("prevOutputDevice") || false;
 var prevAudioInputDevice = localStorage.getItem("prevAudioInputDevice") || false;
 var prevVideoInputDevice = localStorage.getItem("prevVideoInputDevice") || false;
+var user = {};
+var currentUrl = window.location;
+console.log("get url data")
+console.log(currentUrl);
+
+$.ajax({
+	url: 'https://jsonplaceholder.typicode.com/users/2',
+	method: 'GET',
+	async: false,
+	success: function (response) {
+		console.log("api call success")
+		if (response) {
+			user = response
+		}
+	},
+	error: function (xhr, status, error) {
+		// code to handle errors
+		console.error(status + ': ' + error + ': ' + xhr);
+	}
+});
+
+console.log("---------------********---------------")
+console.log(user);
 
 $(function () { //Document ready
 	$.material.init();
 	if (!signaling_socket)
 		initSocketIO(); //Init SocketIO Server
 	showPage("#loginPage");
-	console.log("---------------------**************#@@@@@@@@*************--------------------------------")
+
 	/* LOGIN PAGE */
 	$("#loginBtn").click(function () {
 		username = cleanString($("#inputUser").val());
@@ -51,18 +74,39 @@ $(function () { //Document ready
 				console.log(err);
 			});
 
-			function continueToRoomPage() {
+		async function continueToRoomPage() {
 				//Join a room directly if url get parameter is set   
 				showPage("#roomPage");
 				sendGetAllRooms();
 				var roomName = getQueryVariable("room");
-				if (roomName && roomName != "" && username && username != "dummy") {
-					$("#directRoomName").text(decodeURIComponent(roomName));
-					$('#connectModal').modal({ backdrop: 'static', keyboard: false });
-					$('#connectModal').find("#acceptDirectConnect").click(function () {
-						$($("#roomListContent").find(".roomLaBle[roomName=" + escape(decodeURIComponent(roomName)).replace(/[^a-zA-Z0-9 ]/g, "") + "]")[0]).click();
-					})
-				}
+				var allrooms = [];
+				// get all room
+				signaling_socket.on('getAllRooms', async function (data) {
+					Object.values(data).forEach(room => allrooms.push(room));
+				});
+  
+				setTimeout(() => {
+					console.log("get all rooms", allrooms[0].roomName.split("###")[0]);
+					console.log("roomname form url", roomName);
+
+					const roomExists = allrooms.find(room => room.roomName.split("###")[0] === roomName.split("###")[0]) !== undefined;
+					console.log("--=---------------==", roomExists);
+					if (roomExists && user.id === 2) {
+						$("#directRoomName").text(decodeURIComponent(roomName.split("###")[0]));
+						$('#connectModal').modal({ backdrop: 'static', keyboard: false });
+						$('#connectModal').find("#acceptDirectConnect").click(function () {
+							$($("#roomListContent").find(".roomLaBle[roomName=" + escape(decodeURIComponent(roomName)).replace(/[^a-zA-Z0-9 ]/g, "") + "]")[0]).click();
+						});
+					} else {
+						console.log("=====================")
+						sendCreateNewRoom(roomName.split("###")[0], roomPassword = '');
+						$("#directRoomName").text(decodeURIComponent(roomName.split("###")[0]));
+						$('#connectModal').modal({ backdrop: 'static', keyboard: false });
+						$('#connectModal').find("#acceptDirectConnect").click(function () {
+							$($("#roomListContent").find(".roomLaBle[roomName=" + escape(decodeURIComponent(roomName)).replace(/[^a-zA-Z0-9 ]/g, "") + "]")[0]).click();
+						});
+					}
+				}, 2000)
 			}
 		}
 		$("#notConnected").hide();
