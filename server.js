@@ -20,7 +20,6 @@ const { JSDOM } = require("jsdom");
 const window = new JSDOM("").window;
 // @ts-ignore
 const DOMPurify = createDOMPurify(window);
-
 var snake = require("./acc_server_modules/snake/snake.js");
 var s_whiteboard = require("./acc_server_modules/whiteboard/s_whiteboard.js");
 var app = express();
@@ -40,6 +39,24 @@ var server = http.createServer({
 var io = require('socket.io').listen(server, {
     pingTimeout: 10000,
     pingInterval: 25000
+});
+
+
+app.get('/createRoom', (req, res) => {
+    res.send('Room created successfully');
+});
+
+app.post('/createRoom', (req, res) => {
+    console.log("creating room api caledd", req);
+    // const { roomName, roomPassword = '', creator, users } = req.body;
+    const roomName = 'tsing room';
+    const roomPassword = '';
+    // sendCreateNewRoom(roomName, roomPassword);
+    // send a response to the client
+    // const circularObj = {};
+    // circularObj.circularRef = circularObj;
+    // const fixedObj = JSON.parse(JSON.stringify(circularObj));
+    res.send(JSON.parse(JSON.stringify(req)));
 });
 
 config["mcuConfig"]["masterPort"] = httpPort;
@@ -195,7 +212,7 @@ io.sockets.on('connection', function (socket) {
     socket.on('createRoom', function (content, callback) {
         content = escapeAllContentStrings(content);
         var roomName = content.roomName.trim();
-        if(roomName == "") {
+        if (roomName == "") {
             return callback("Invaild Roomname!")
         }
         var roomPassword = content.roomPassword;
@@ -531,7 +548,7 @@ io.sockets.on('connection', function (socket) {
                                 clearInterval(ytInterval)
                             }
                         }, 1000)
-                    } else { 
+                    } else {
                         clearInterval(ytInterval)
                     }
                     storedYoutubePlays[roomName].status = content.data;
@@ -1319,19 +1336,19 @@ function saveUserPItems() {
 // };
 function loadAll3DObjs() {
     fs.readFile('./db/all3DObjs.txt', 'utf8', function (err, data) {
-      if (err) {
-        console.log("warning: File ./db/all3DObjs.txt not found (yet).");
-      } else {
-        try {
-          all3DObjs = JSON.parse(data);
-          console.log('all3DObjs loaded successfully!');
-        } catch (e) {
-          console.log("error parsing ./db/all3DObjs.txt as JSON:", e);
+        if (err) {
+            console.log("warning: File ./db/all3DObjs.txt not found (yet).");
+        } else {
+            try {
+                all3DObjs = JSON.parse(data);
+                console.log('all3DObjs loaded successfully!');
+            } catch (e) {
+                console.log("error parsing ./db/all3DObjs.txt as JSON:", e);
+            }
         }
-      }
     });
-  }
-  
+}
+
 
 loadAll3DObjs();
 

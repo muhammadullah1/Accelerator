@@ -16,6 +16,12 @@ var user = {};
 var currentUrl = window.location;
 console.log("get url data")
 console.log(currentUrl);
+console.log(getQueryVariable("room"));
+console.log(getQueryVariable("username"));
+const sessionTime = decodeURIComponent(new URLSearchParams(window.location.search).get('session_time')).replace(/\s/g, '');
+console.log(sessionTime);
+
+
 
 $.ajax({
 	url: 'https://jsonplaceholder.typicode.com/users/2',
