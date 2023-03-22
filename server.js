@@ -99,120 +99,6 @@ app.post('/upload', function (req, res) { //File upload
     form.parse(req);
 });
 
-
-
-
-
-////////////api reqest////////////////////
-
-// io.sockets.on('connection', async function (socket) {
-//     app.post('/createRoom', (req, res) => {
-//         var { roomName, roomPassword = '', creator, users } = req.body;
-//         console.log("----------outside socket function----------", roomName);
-
-//         socket.emit("createRoom",
-//             {
-//                 "roomName": roomName,
-//                 "roomPassword": roomPassword,
-//                 "creator": creator,
-//                 "users": users
-//             }, function (err) {
-//                 if (err) {
-//                     res.send(err)
-//                 }
-//             });
-
-//         // Emit 'createRoom' event to Socket.io with required parameters
-//         //   socket.emit('createRoom', {
-//         //     "roomName": roomName,
-//         //     "roomPassword": roomPassword,
-//         //     "creator": creator,
-//         //     "users": users
-//         //   }, function (err) {
-//         //     if (err) {
-//         //       res.send(err);
-//         //     } else {
-//         // Logic to create a room
-//         var roomName = req.body.roomName.trim();
-//         if (roomName == "") {
-//             res.send("Invalid Roomname!");
-//         } else if (allRoomAttr[roomName]) {
-//             res.send("A room with this name already exists!");
-//         } else {
-//             allRoomAttr[roomName] = {
-//                 "moderator": null,
-//                 "users": users,
-//                 "roomName": roomName,
-//                 "roomPassword": roomPassword,
-//                 "creator": creator,
-//                 "lastVisit": +new Date(),
-//                 "permanent": false
-//             }
-//             var cleanRooms = getAllRoomsWithoutPasswords();
-//             socket.broadcast.emit('getAllRooms', cleanRooms);
-//             socket.emit('getAllRooms', cleanRooms);
-//             saveAllRoomAttr();
-//             res.send("Room created successfully");
-//         }
-//     });
-//     //   });
-// });
-// });
-
-io.sockets.on('connection', async function (socket) {
-    app.post('/createRoom', (req, res) => {
-      var { roomName, roomPassword = '', creator, users } = req.body;
-      console.log("----------outside socket function----------", roomName);
-  
-      socket.emit("createRoom", {
-        "roomName": roomName,
-        "roomPassword": roomPassword,
-        "creator": creator,
-        "users": users
-      }, function (err) {
-        if (err) {
-          res.status(500).send({
-            error : err
-          });
-        }
-      });
-  
-      // Logic to create a room
-      var roomName = req.body.roomName.trim();
-      if (roomName == "") {
-        res.status(400).send("Invalid Roomname!");
-      } else if (allRoomAttr[roomName]) {
-        res.status(409).send({
-            error : "A room with this name already exists!"
-        });
-      } else {
-        allRoomAttr[roomName] = {
-          "moderator": null,
-          "users": users,
-          "roomName": roomName,
-          "roomPassword": roomPassword,
-          "creator": creator,
-          "lastVisit": +new Date(),
-          "permanent": false
-        }
-        var cleanRooms = getAllRoomsWithoutPasswords();
-        socket.broadcast.emit('getAllRooms', cleanRooms);
-        socket.emit('getAllRooms', cleanRooms);
-        saveAllRoomAttr();
-        res.status(201).send({
-            message : "Room created successfully"
-        });
-      }
-    });
-  });
-  
-
-
-
-
-
-
-
 app.get('/loadwhiteboard', function (req, res) {
     var wid = req["query"]["wid"];
     var ret = s_whiteboard.loadStoredData(wid);
@@ -250,6 +136,118 @@ setTimeout(function () {
     }
     console.log("--------------------------------------");
 }, 200);
+
+
+/*************************/
+/*** CREATE ROOM REQUEST API ROUTE ***/
+/*************************/
+
+
+io.sockets.on('connection', async function (socket) {
+    app.post('/createRoom', (req, res) => {
+      var { roomName, roomPassword = '', creator, users } = req.body;
+      console.log("----------outside socket function----------", users);
+  
+      socket.emit("createRoom", {
+        "roomName": roomName,
+        "roomPassword": roomPassword,
+        "creator": creator,
+        "users": users,
+        "permanent": true
+      }, function (err) {
+        if (err) {
+          res.status(500).send({
+            error : err
+          });
+        }
+      });
+  
+      // Logic to create a room
+      var roomName = req.body.roomName.trim();
+      if (roomName == "") {
+        res.status(400).send("Invalid Roomname!");
+      } else if (allRoomAttr[roomName]) {
+        res.status(409).send({
+            error : "A room with this name already exists!"
+        });
+      } else {
+        allRoomAttr[roomName] = {
+          "moderator": null,
+          "users": users,
+          "roomName": roomName,
+          "roomPassword": roomPassword,
+          "creator": creator,
+          "lastVisit": +new Date(),
+          "permanent": true
+        }
+        var cleanRooms = getAllRoomsWithoutPasswords();
+        socket.broadcast.emit('getAllRooms', cleanRooms);
+        socket.emit('getAllRooms', cleanRooms);
+        saveAllRoomAttr();
+        res.status(201).send({
+            message : "Room created successfully"
+        });
+      }
+    });
+  });
+
+  //retrive the user of a specfic room
+  //const roomUsers = allRoomAttr['room1'].users;
+
+
+
+
+//   io.sockets.on('connection', async function (socket) {
+//     app.post('/createrommwihtusers', (req, res) => {
+//       var { roomName, roomPassword = '', creator, users } = req.body;
+//       console.log("----------outside socket function----------", users);
+  
+//       socket.emit("createRoom", {
+//         "roomName": roomName,
+//         "roomPassword": roomPassword,
+//         "creator": creator,
+//         "users": users,
+//         "permanent": true
+//       }, function (err) {
+//         if (err) {
+//           res.status(500).send({
+//             error : err
+//           });
+//         }
+//       });
+  
+//       // Logic to create a room
+//       var roomName = req.body.roomName.trim();
+//       if (roomName == "") {
+//         res.status(400).send("Invalid Roomname!");
+//       } else if (allRoomAttr[roomName]) {
+//         res.status(409).send({
+//             error : "A room with this name already exists!"
+//         });
+//       } else {
+//         allRoomAttr[roomName] = {
+//           "moderator": null,
+//           "users": [],
+//           "roomName": roomName,
+//           "roomPassword": roomPassword,
+//           "creator": creator,
+//           "lastVisit": +new Date(),
+//           "permanent": true
+//         }
+//         users.forEach(user => {
+//           allRoomAttr[roomName]["users"].push(user);
+//         });
+//         var cleanRooms = getAllRoomsWithoutPasswords();
+//         socket.broadcast.emit('getAllRooms', cleanRooms);
+//         socket.emit('getAllRooms', cleanRooms);
+//         saveAllRoomAttr();
+//         res.status(201).send({
+//             message : "Room created successfully"
+//         });
+//       }
+//     });
+//   });
+  
 
 
 /*************************/
@@ -338,57 +336,6 @@ io.sockets.on('connection', function (socket) {
             callback("A room with this name already exists!")
         }
     });
-
-
-
-
-
-    // post request to server  signaling_socket = io();
-    // app.post('/createRoom', (req, res) => {
-    //     var { roomName, roomPassword = '', creator, users } = req.body;
-    //     console.log("----------outside soket function----------", roomName)
-    //     socket.on('createRoom', function () {
-
-    //         console.log("------------inside soket function--------");
-
-    //         socket.emit("createRoom",
-    //             {
-    //                 "roomName": roomName,
-    //                 "roomPassword": roomPassword,
-    //                 "creator": username,
-    //                 "users": users
-    //             }, function (err) {
-    //                 if (err) {
-    //                     alert(err)
-    //                 }
-    //             });
-    //         if (!allRoomAttr[roomName]) {
-    //             allRoomAttr[roomName] = {
-    //                 "moderator": null,
-    //                 "users": users,
-    //                 "roomName": roomName,
-    //                 "roomPassword": roomPassword,
-    //                 "creator": creator,
-    //                 "lastVisit": +new Date(),
-    //                 "permanent": false
-    //             }
-    //             var cleanRooms = getAllRoomsWithoutPasswords();
-    //             socket.broadcast.emit('getAllRooms', cleanRooms);
-    //             socket.emit('getAllRooms', cleanRooms);
-    //             saveAllRoomAttr();
-    //         } else {
-    //             res.send("A room with this name already exists!")
-    //         }
-    //     });
-    //     res.send("room created successfully");
-    // });
-
-
-
-
-    ////////////////////////////////////
-
-
 
 
     socket.on('setUserAttr', function (content, callback) {
