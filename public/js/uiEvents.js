@@ -13,6 +13,8 @@ var prevOutputDevice = localStorage.getItem("prevOutputDevice") || false;
 var prevAudioInputDevice = localStorage.getItem("prevAudioInputDevice") || false;
 var prevVideoInputDevice = localStorage.getItem("prevVideoInputDevice") || false;
 var user = {};
+
+// getting data from url 
 var currentUrl = window.location;
 console.log("get url data")
 console.log(currentUrl);
@@ -20,8 +22,7 @@ console.log(getQueryVariable("room"));
 console.log(getQueryVariable("username"));
 const sessionTime = decodeURIComponent(new URLSearchParams(window.location.search).get('session_time')).replace(/\s/g, '');
 console.log(sessionTime);
-
-
+// end of get data form url
 
 $.ajax({
 	url: 'https://jsonplaceholder.typicode.com/users/2',

@@ -13,6 +13,12 @@ var config = configLoader.getConfigs();
 var httpPort = config["http"]["port"] || 8080;
 
 var express = require('express');
+const bodyParser = require('body-parser');
+const app = express();
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.raw());
 var fs = require("fs-extra");
 
 const createDOMPurify = require("dompurify"); //Prevent xss
@@ -22,7 +28,6 @@ const window = new JSDOM("").window;
 const DOMPurify = createDOMPurify(window);
 var snake = require("./acc_server_modules/snake/snake.js");
 var s_whiteboard = require("./acc_server_modules/whiteboard/s_whiteboard.js");
-var app = express();
 
 if (config["mcuConfig"]["isMaster"]) {
     app.use(express.static(__dirname + '/public'));
@@ -39,24 +44,6 @@ var server = http.createServer({
 var io = require('socket.io').listen(server, {
     pingTimeout: 10000,
     pingInterval: 25000
-});
-
-
-app.get('/createRoom', (req, res) => {
-    res.send('Room created successfully');
-});
-
-app.post('/createRoom', (req, res) => {
-    console.log("creating room api caledd", req);
-    // const { roomName, roomPassword = '', creator, users } = req.body;
-    const roomName = 'tsing room';
-    const roomPassword = '';
-    // sendCreateNewRoom(roomName, roomPassword);
-    // send a response to the client
-    // const circularObj = {};
-    // circularObj.circularRef = circularObj;
-    // const fixedObj = JSON.parse(JSON.stringify(circularObj));
-    res.send(JSON.parse(JSON.stringify(req)));
 });
 
 config["mcuConfig"]["masterPort"] = httpPort;
@@ -111,6 +98,120 @@ app.post('/upload', function (req, res) { //File upload
     });
     form.parse(req);
 });
+
+
+
+
+
+////////////api reqest////////////////////
+
+// io.sockets.on('connection', async function (socket) {
+//     app.post('/createRoom', (req, res) => {
+//         var { roomName, roomPassword = '', creator, users } = req.body;
+//         console.log("----------outside socket function----------", roomName);
+
+//         socket.emit("createRoom",
+//             {
+//                 "roomName": roomName,
+//                 "roomPassword": roomPassword,
+//                 "creator": creator,
+//                 "users": users
+//             }, function (err) {
+//                 if (err) {
+//                     res.send(err)
+//                 }
+//             });
+
+//         // Emit 'createRoom' event to Socket.io with required parameters
+//         //   socket.emit('createRoom', {
+//         //     "roomName": roomName,
+//         //     "roomPassword": roomPassword,
+//         //     "creator": creator,
+//         //     "users": users
+//         //   }, function (err) {
+//         //     if (err) {
+//         //       res.send(err);
+//         //     } else {
+//         // Logic to create a room
+//         var roomName = req.body.roomName.trim();
+//         if (roomName == "") {
+//             res.send("Invalid Roomname!");
+//         } else if (allRoomAttr[roomName]) {
+//             res.send("A room with this name already exists!");
+//         } else {
+//             allRoomAttr[roomName] = {
+//                 "moderator": null,
+//                 "users": users,
+//                 "roomName": roomName,
+//                 "roomPassword": roomPassword,
+//                 "creator": creator,
+//                 "lastVisit": +new Date(),
+//                 "permanent": false
+//             }
+//             var cleanRooms = getAllRoomsWithoutPasswords();
+//             socket.broadcast.emit('getAllRooms', cleanRooms);
+//             socket.emit('getAllRooms', cleanRooms);
+//             saveAllRoomAttr();
+//             res.send("Room created successfully");
+//         }
+//     });
+//     //   });
+// });
+// });
+
+io.sockets.on('connection', async function (socket) {
+    app.post('/createRoom', (req, res) => {
+      var { roomName, roomPassword = '', creator, users } = req.body;
+      console.log("----------outside socket function----------", roomName);
+  
+      socket.emit("createRoom", {
+        "roomName": roomName,
+        "roomPassword": roomPassword,
+        "creator": creator,
+        "users": users
+      }, function (err) {
+        if (err) {
+          res.status(500).send({
+            error : err
+          });
+        }
+      });
+  
+      // Logic to create a room
+      var roomName = req.body.roomName.trim();
+      if (roomName == "") {
+        res.status(400).send("Invalid Roomname!");
+      } else if (allRoomAttr[roomName]) {
+        res.status(409).send({
+            error : "A room with this name already exists!"
+        });
+      } else {
+        allRoomAttr[roomName] = {
+          "moderator": null,
+          "users": users,
+          "roomName": roomName,
+          "roomPassword": roomPassword,
+          "creator": creator,
+          "lastVisit": +new Date(),
+          "permanent": false
+        }
+        var cleanRooms = getAllRoomsWithoutPasswords();
+        socket.broadcast.emit('getAllRooms', cleanRooms);
+        socket.emit('getAllRooms', cleanRooms);
+        saveAllRoomAttr();
+        res.status(201).send({
+            message : "Room created successfully"
+        });
+      }
+    });
+  });
+  
+
+
+
+
+
+
 
 app.get('/loadwhiteboard', function (req, res) {
     var wid = req["query"]["wid"];
@@ -217,11 +318,12 @@ io.sockets.on('connection', function (socket) {
         }
         var roomPassword = content.roomPassword;
         var creator = content.creator;
+        var users = content.users;
 
         if (!allRoomAttr[roomName]) {
             allRoomAttr[roomName] = {
                 "moderator": null,
-                "users": {},
+                "users": users,
                 "roomName": roomName,
                 "roomPassword": roomPassword,
                 "creator": creator,
@@ -236,6 +338,58 @@ io.sockets.on('connection', function (socket) {
             callback("A room with this name already exists!")
         }
     });
+
+
+
+
+
+    // post request to server  signaling_socket = io();
+    // app.post('/createRoom', (req, res) => {
+    //     var { roomName, roomPassword = '', creator, users } = req.body;
+    //     console.log("----------outside soket function----------", roomName)
+    //     socket.on('createRoom', function () {
+
+    //         console.log("------------inside soket function--------");
+
+    //         socket.emit("createRoom",
+    //             {
+    //                 "roomName": roomName,
+    //                 "roomPassword": roomPassword,
+    //                 "creator": username,
+    //                 "users": users
+    //             }, function (err) {
+    //                 if (err) {
+    //                     alert(err)
+    //                 }
+    //             });
+    //         if (!allRoomAttr[roomName]) {
+    //             allRoomAttr[roomName] = {
+    //                 "moderator": null,
+    //                 "users": users,
+    //                 "roomName": roomName,
+    //                 "roomPassword": roomPassword,
+    //                 "creator": creator,
+    //                 "lastVisit": +new Date(),
+    //                 "permanent": false
+    //             }
+    //             var cleanRooms = getAllRoomsWithoutPasswords();
+    //             socket.broadcast.emit('getAllRooms', cleanRooms);
+    //             socket.emit('getAllRooms', cleanRooms);
+    //             saveAllRoomAttr();
+    //         } else {
+    //             res.send("A room with this name already exists!")
+    //         }
+    //     });
+    //     res.send("room created successfully");
+    // });
+
+
+
+
+    ////////////////////////////////////
+
+
+
 
     socket.on('setUserAttr', function (content, callback) {
         content = escapeAllContentStrings(content);
