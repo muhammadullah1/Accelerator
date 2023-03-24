@@ -13,13 +13,55 @@ var config = configLoader.getConfigs();
 var httpPort = config["http"]["port"] || 8080;
 
 var express = require('express');
+require('dotenv').config();
 const bodyParser = require('body-parser');
+const dbConfig = require('./config/databaseConfig.js');
 const app = express();
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.raw());
 var fs = require("fs-extra");
+const Session = require('./models/session.model');
+
+
+
+//***************************** */
+// swager
+const swaggerUi = require("swagger-ui-express"),
+swaggerDocument = require("./swagger.json");
+// *******************************
+
+app.use(
+    '/api-docs',
+    swaggerUi.serve, 
+    swaggerUi.setup(swaggerDocument)
+  );
+  
+
+// check databse connecion
+console.log('---------------------------------')
+dbConfig.authenticate()
+    .then(() => {
+        console.log('Database connection successful');
+    })
+    .catch((err) => {
+        console.error('Unable to connect to the database:', err);
+    });
+console.log('---------------------------------');
+
+// To synchronize all the models with the database
+
+dbConfig.sync({ force: true })
+    .then(() => {
+        console.log('All models were synchronized successfully.');
+    })
+    .catch((err) => {
+        console.error('An error occurred while synchronizing the models:', err);
+    });
+
+/////////////////////
+
 
 const createDOMPurify = require("dompurify"); //Prevent xss
 const { JSDOM } = require("jsdom");
@@ -130,13 +172,42 @@ var storedYoutubePlays = {};
 setTimeout(function () {
     console.log("--------------------------------------");
     if (config["mcuConfig"]["isMaster"]) {
-        console.log("Accelerator MAIN is up and running! YEAH :D");
+        console.log("WhiteBoard MAIN is up and running! YEAH :D");
     } else {
-        console.log("Accelerator Loadbalancer is up and running! YEAH :D");
+        console.log("WhiteBoard Loadbalancer is up and running! YEAH :D");
     }
     console.log("--------------------------------------");
 }, 200);
 
+/*************************/
+/*** GET USER ***/
+/*************************/
+
+app.get('/session', async (req, res) => {
+    try {
+        const users = await Session.findAll(); // find all users in the database
+        res.json(users); // return the users as JSON
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
+
+app.post('/session', async (req, res) => {
+    try {
+        const newUser = await Session.create({
+            roomName: req.body.roomName,
+            creater: req.body.creater,
+            users: req.body.users // assuming 'users' is an array of user objects
+        });
+        res.status(201).json(newUser);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 /*************************/
 /*** CREATE ROOM REQUEST API ROUTE ***/
@@ -145,109 +216,55 @@ setTimeout(function () {
 
 io.sockets.on('connection', async function (socket) {
     app.post('/createRoom', (req, res) => {
-      var { roomName, roomPassword = '', creator, users } = req.body;
-      console.log("----------outside socket function----------", users);
-  
-      socket.emit("createRoom", {
-        "roomName": roomName,
-        "roomPassword": roomPassword,
-        "creator": creator,
-        "users": users,
-        "permanent": true
-      }, function (err) {
-        if (err) {
-          res.status(500).send({
-            error : err
-          });
-        }
-      });
-  
-      // Logic to create a room
-      var roomName = req.body.roomName.trim();
-      if (roomName == "") {
-        res.status(400).send("Invalid Roomname!");
-      } else if (allRoomAttr[roomName]) {
-        res.status(409).send({
-            error : "A room with this name already exists!"
+        var { roomName, roomPassword = '', creator, users } = req.body;
+        console.log("----------outside socket function----------", users);
+
+        socket.emit("createRoom", {
+            "roomName": roomName,
+            "roomPassword": roomPassword,
+            "creator": creator,
+            "users": users,
+            "permanent": true
+        }, function (err) {
+            if (err) {
+                res.status(500).send({
+                    error: err
+                });
+            }
         });
-      } else {
-        allRoomAttr[roomName] = {
-          "moderator": null,
-          "users": users,
-          "roomName": roomName,
-          "roomPassword": roomPassword,
-          "creator": creator,
-          "lastVisit": +new Date(),
-          "permanent": true
+
+        // Logic to create a room
+        var roomName = req.body.roomName.trim();
+        if (roomName == "") {
+            res.status(400).send("Invalid Roomname!");
+        } else if (allRoomAttr[roomName]) {
+            res.status(409).send({
+                error: "A room with this name already exists!"
+            });
+        } else {
+            allRoomAttr[roomName] = {
+                "moderator": null,
+                "users": users,
+                "roomName": roomName,
+                "roomPassword": roomPassword,
+                "creator": creator,
+                "lastVisit": +new Date(),
+                "permanent": true
+            }
+            var cleanRooms = getAllRoomsWithoutPasswords();
+            socket.broadcast.emit('getAllRooms', cleanRooms);
+            socket.emit('getAllRooms', cleanRooms);
+            saveAllRoomAttr();
+            res.status(201).send({
+                message: "Room created successfully"
+            });
         }
-        var cleanRooms = getAllRoomsWithoutPasswords();
-        socket.broadcast.emit('getAllRooms', cleanRooms);
-        socket.emit('getAllRooms', cleanRooms);
-        saveAllRoomAttr();
-        res.status(201).send({
-            message : "Room created successfully"
-        });
-      }
     });
-  });
+});
 
-  //retrive the user of a specfic room
-  //const roomUsers = allRoomAttr['room1'].users;
+//retrive the user of a specfic room
+//const roomUsers = allRoomAttr['room1'].users;
 
-
-
-
-//   io.sockets.on('connection', async function (socket) {
-//     app.post('/createrommwihtusers', (req, res) => {
-//       var { roomName, roomPassword = '', creator, users } = req.body;
-//       console.log("----------outside socket function----------", users);
-  
-//       socket.emit("createRoom", {
-//         "roomName": roomName,
-//         "roomPassword": roomPassword,
-//         "creator": creator,
-//         "users": users,
-//         "permanent": true
-//       }, function (err) {
-//         if (err) {
-//           res.status(500).send({
-//             error : err
-//           });
-//         }
-//       });
-  
-//       // Logic to create a room
-//       var roomName = req.body.roomName.trim();
-//       if (roomName == "") {
-//         res.status(400).send("Invalid Roomname!");
-//       } else if (allRoomAttr[roomName]) {
-//         res.status(409).send({
-//             error : "A room with this name already exists!"
-//         });
-//       } else {
-//         allRoomAttr[roomName] = {
-//           "moderator": null,
-//           "users": [],
-//           "roomName": roomName,
-//           "roomPassword": roomPassword,
-//           "creator": creator,
-//           "lastVisit": +new Date(),
-//           "permanent": true
-//         }
-//         users.forEach(user => {
-//           allRoomAttr[roomName]["users"].push(user);
-//         });
-//         var cleanRooms = getAllRoomsWithoutPasswords();
-//         socket.broadcast.emit('getAllRooms', cleanRooms);
-//         socket.emit('getAllRooms', cleanRooms);
-//         saveAllRoomAttr();
-//         res.status(201).send({
-//             message : "Room created successfully"
-//         });
-//       }
-//     });
-//   });
-  
 
 
 /*************************/
