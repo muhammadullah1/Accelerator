@@ -1660,7 +1660,7 @@ function renderAllRooms(roomList) {
 	console.log(roomList);
 	$("#roomListContent tbody").empty();
 
-	$("#addNewRoomPanel").show();
+	// $("#addNewRoomPanel").show();
 	if (JSON.stringify(roomList) == "{}") {
 		$("#roomListContent tbody").text("No room on this Server!");
 	} else {
@@ -1746,6 +1746,26 @@ function filterRooms() {
 	});
 }
 
+// getting data from url 
+var currentUrl = window.location;
+console.log("get url data");
+function getQueryVariables(url) {
+	const queryString = url.split('?')[1]; // Get the query string from the URL
+	if (!queryString) return {}; // If there are no query variables, return an empty object
+	const pairs = queryString.split('&'); // Split the query string into key-value pairs
+	const result = {}; // Create an empty object to store the key-value pairs
+	pairs.forEach((pair) => {
+		const [key, value] = pair.split('='); // Split each key-value pair into its components
+		result[key] = decodeURIComponent(value); // Store the decoded key-value pair in the result object
+	});
+	return result; // Return the object containing the query variables and their values
+}
+const queryVars = getQueryVariables(currentUrl.href);
+console.log("---------------****##########****---------------")
+console.log(queryVars);
+console.log("---------------****##########****---------------")
+
+
 var joinedRoom = false;
 function joinRoom(room, roomPassword) {
 	if (!joinedRoom) { //Dont allow to join a room twice
@@ -1755,7 +1775,8 @@ function joinRoom(room, roomPassword) {
 			"roomName": room["roomName"],
 			"username": username,
 			"color": ownColor,
-			"roomPassword": roomPassword
+			"roomPassword": roomPassword,
+			"userData": queryVars
 		}, function (err) {
 			if (err) {
 				alert(err);

@@ -24,6 +24,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.raw());
 var fs = require("fs-extra");
 const Session = require('./models/session.model');
+const { getSessions } = require('./services/session.service');
 // const sessionRoutes = require('./routes/session.route');
 
 
@@ -182,7 +183,7 @@ setTimeout(function () {
 }, 200);
 
 /*************************/
-/*** CREATE ROOM REQUEST API ROUTE ***/
+/*** CRUD ROOM OR SESSION REQUEST API ROUTE ***/
 /*************************/
 
 io.sockets.on('connection', async function (socket) {
@@ -195,9 +196,11 @@ io.sockets.on('connection', async function (socket) {
             sessionId: Joi.string().required(),
             classesId: Joi.string().required(),
             creater: Joi.string().required(),
+            teacherId: Joi.string().optional(),
+            teacherName: Joi.string().optional(),
             users: Joi.array().items(Joi.object({
                 name: Joi.string().required(),
-                email: Joi.string().email().required(),
+                id: Joi.string().uuid().required(),
                 role: Joi.string().valid('student', 'teacher').required()
             })).min(1).required(),
             sessionDate: Joi.string().required(),
@@ -215,8 +218,11 @@ io.sockets.on('connection', async function (socket) {
                 return;
             };
 
+            const trimmedRoomName = sessionName.trim();
+            const formattedRoomName = trimmedRoomName.replace(/\s+/g, '_');
+
             socket.emit("createRoom", {
-                "roomName": sessionName,
+                "roomName": formattedRoomName,
                 "roomPassword": '',
                 "creator": creater,
                 "users": users,
@@ -230,17 +236,17 @@ io.sockets.on('connection', async function (socket) {
             });
 
             // Logic to create a room
-            if (sessionName == "") {
+            if (formattedRoomName == "") {
                 res.status(400).send("Invalid Roomname!");
-            } else if (allRoomAttr[sessionName]) {
+            } else if (allRoomAttr[formattedRoomName]) {
                 res.status(409).send({
                     error: "A room with this name already exists!"
                 });
             } else {
-                allRoomAttr[sessionName] = {
+                allRoomAttr[formattedRoomName] = {
                     "moderator": null,
                     "users": users,
-                    "roomName": sessionName,
+                    "roomName": formattedRoomName,
                     "roomPassword": roomPassword,
                     "creator": creater,
                     "lastVisit": +new Date(),
@@ -250,7 +256,7 @@ io.sockets.on('connection', async function (socket) {
                 socket.broadcast.emit('getAllRooms', cleanRooms);
                 socket.emit('getAllRooms', cleanRooms);
                 saveAllRoomAttr();
-                await Session.create(value);
+                await Session.create({ ...value, formattedRoomName });
                 res.status(201).send({
                     message: "Room created successfully"
                 });
@@ -261,6 +267,43 @@ io.sockets.on('connection', async function (socket) {
         }
     });
 });
+
+/*************************/
+/*** GET ALL SESSION  ***/
+/*************************/
+
+app.get('/session', async (req, res) => {
+    try {
+        const sessions = await Session.findAll();
+        res.status(200).json(sessions);
+    } catch (error) {
+        console.error(error);
+        throw new Error('Server error');
+    }
+})
+
+//   app.get('/session', async (req, res) => {
+//     try {
+//       const sessions = await Session.findAll();
+// console.log(sessions[0].session.dataValues)
+
+//       // Parse the string data in each session object
+//       const parsedSessions = sessions.map(session => {
+//         const parsedData = JSON.parse(session.dataValues.data);
+//         return {
+//           ...session.dataValues,
+//           data: parsedData
+//         }
+//       });
+
+//       res.status(200).json(parsedSessions);
+//     } catch (error) {
+//       console.error(error);
+//       throw new Error('Server error');
+//     }
+//   });
+
+
 
 /*************************/
 /*** INTERESTING STUFF ***/
@@ -362,7 +405,27 @@ io.sockets.on('connection', function (socket) {
         callback(config["accConfig"]);
     });
 
-    socket.on('join', function (content, callback) {
+    socket.on('join', async function (content, callback) {
+        const user = content.userData;
+        console.log(user);
+
+        // user validation
+        async function getSessions() {
+            try {
+                const sessions = await Session.findAll();
+                console.log("************ inside funtion dtabaseqeury ***************");
+                console.log(sessions);
+                return sessions;
+            } catch (error) {
+                console.error(error);
+                throw new Error('Server error');
+            }
+        }
+        console.log("************database query inside join room ***************");
+        const sessions = await getSessions();
+        console.log(sessions);
+
+
         content = escapeAllContentStrings(content);
         //console.log("[" + socket.id + "] join ", content);
         roomName = content.roomName ? content.roomName.trim() : "";

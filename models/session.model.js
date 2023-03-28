@@ -20,6 +20,14 @@ const Session = sequelize.define('session', {
     type: Sequelize.STRING,
     allowNull: false
   },
+  teacherId : {
+    type: Sequelize.STRING,
+    allowNull: false
+  },
+  teacherName : {
+    type: Sequelize.STRING,
+    allowNull: true
+  },
   creater: {
     type: Sequelize.STRING,
     allowNull: true

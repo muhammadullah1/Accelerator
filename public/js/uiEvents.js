@@ -14,34 +14,26 @@ var prevAudioInputDevice = localStorage.getItem("prevAudioInputDevice") || false
 var prevVideoInputDevice = localStorage.getItem("prevVideoInputDevice") || false;
 var user = {};
 
-// getting data from url 
-var currentUrl = window.location;
-console.log("get url data")
-console.log(currentUrl);
-console.log(getQueryVariable("room"));
-console.log(getQueryVariable("username"));
-const sessionTime = decodeURIComponent(new URLSearchParams(window.location.search).get('session_time')).replace(/\s/g, '');
-console.log(sessionTime);
-// end of get data form url
+// import Session from '../../models/session.model';
 
-$.ajax({
-	url: 'https://jsonplaceholder.typicode.com/users/2',
-	method: 'GET',
-	async: false,
-	success: function (response) {
-		console.log("api call success")
-		if (response) {
-			user = response
-		}
-	},
-	error: function (xhr, status, error) {
-		// code to handle errors
-		console.error(status + ': ' + error + ': ' + xhr);
-	}
-});
 
-console.log("---------------********---------------")
-console.log(user);
+// // getting data from url 
+// var currentUrl = window.location;
+// console.log("get url data");
+// function getQueryVariables(url) {
+// 	const queryString = url.split('?')[1]; // Get the query string from the URL
+// 	if (!queryString) return {}; // If there are no query variables, return an empty object
+// 	const pairs = queryString.split('&'); // Split the query string into key-value pairs
+// 	const result = {}; // Create an empty object to store the key-value pairs
+// 	pairs.forEach((pair) => {
+// 		const [key, value] = pair.split('='); // Split each key-value pair into its components
+// 		result[key] = decodeURIComponent(value); // Store the decoded key-value pair in the result object
+// 	});
+// 	return result; // Return the object containing the query variables and their values
+// }
+// const queryVars = getQueryVariables(currentUrl.href);
+// console.log(queryVars);
+// console.log("---------------********---------------")
 
 $(function () { //Document ready
 	$.material.init();
@@ -81,37 +73,28 @@ $(function () { //Document ready
 				console.log(err);
 			});
 
-		async function continueToRoomPage() {
+			async function continueToRoomPage() {
 				//Join a room directly if url get parameter is set   
 				showPage("#roomPage");
 				sendGetAllRooms();
-				var roomName = getQueryVariable("room");
+				var roomName = getQueryVariable("session");
 				var allrooms = [];
 				// get all room
 				signaling_socket.on('getAllRooms', async function (data) {
 					Object.values(data).forEach(room => allrooms.push(room));
 				});
-  
-				setTimeout(() => {
-					console.log("get all rooms", allrooms[0].roomName.split("###")[0]);
-					console.log("roomname form url", roomName);
 
-					const roomExists = allrooms.find(room => room.roomName.split("###")[0] === roomName.split("###")[0]) !== undefined;
-					console.log("--=---------------==", roomExists);
-					if (roomExists && user.id === 2) {
-						$("#directRoomName").text(decodeURIComponent(roomName.split("###")[0]));
+				setTimeout(() => {
+					const roomExists = allrooms.find(room => room.roomName);
+					if (roomExists) {
+						$("#directRoomName").text(decodeURIComponent(roomName));
 						$('#connectModal').modal({ backdrop: 'static', keyboard: false });
 						$('#connectModal').find("#acceptDirectConnect").click(function () {
 							$($("#roomListContent").find(".roomLaBle[roomName=" + escape(decodeURIComponent(roomName)).replace(/[^a-zA-Z0-9 ]/g, "") + "]")[0]).click();
 						});
-					} else {
-						console.log("=====================")
-						sendCreateNewRoom(roomName.split("###")[0], roomPassword = '');
-						$("#directRoomName").text(decodeURIComponent(roomName.split("###")[0]));
-						$('#connectModal').modal({ backdrop: 'static', keyboard: false });
-						$('#connectModal').find("#acceptDirectConnect").click(function () {
-							$($("#roomListContent").find(".roomLaBle[roomName=" + escape(decodeURIComponent(roomName)).replace(/[^a-zA-Z0-9 ]/g, "") + "]")[0]).click();
-						});
+					} 
+					else {
+						alert('session not find');
 					}
 				}, 2000)
 			}
