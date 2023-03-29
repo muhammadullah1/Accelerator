@@ -558,20 +558,12 @@ function sendAudioVolume(vol) {
 }
 
 function sendCreateNewRoom(roomName, roomPassword) {
-    const users = [
-        { username: "user1", email: "user1@example.com", role: "student" },
-        { username: "user2", email: "user2@example.com", role: "student" },
-        { username: "user3", email: "user3@example.com", role: "student" },
-        { username: "user4", email: "user4@example.com", role: "student" },
-        { username: "user5", email: "user5@example.com", role: "student" },
-        { username: "user6", email: "user6@example.com", role: "teacher" }
-    ];
     signaling_socket.emit("createRoom",
         {
             "roomName": roomName,
             "roomPassword": roomPassword,
             "creator": username,
-            "users": users
+            "users": {}
         }, function (err) {
             if (err) {
                 alert(err)

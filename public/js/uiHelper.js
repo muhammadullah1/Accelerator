@@ -1361,7 +1361,7 @@ function updateConfGridView(leavingConfTab) {
 				'<h1 style="font-family: "Rock Salt", cursive !important;"><span>Conference Grid</span></h1>' +
 				'<i style="font-size: 22em; color: white;" class="fa fa-th"></i>' +
 				'<div>Waiting for camera shares...</div>' +
-			'</div>');
+				'</div>');
 			$("#confContend").css({ "background": "rgba(255, 255, 255, 0.19)" })
 		} else {
 			$("#confContend").css({ "background": "rgba(255, 255, 255,0)" })
@@ -1750,15 +1750,15 @@ function filterRooms() {
 var currentUrl = window.location;
 console.log("get url data");
 function getQueryVariables(url) {
-	const queryString = url.split('?')[1]; // Get the query string from the URL
-	if (!queryString) return {}; // If there are no query variables, return an empty object
-	const pairs = queryString.split('&'); // Split the query string into key-value pairs
-	const result = {}; // Create an empty object to store the key-value pairs
+	const queryString = url.split('?')[1];
+	if (!queryString) return {};
+	const pairs = queryString.split('&');
+	const result = {};
 	pairs.forEach((pair) => {
-		const [key, value] = pair.split('='); // Split each key-value pair into its components
-		result[key] = decodeURIComponent(value); // Store the decoded key-value pair in the result object
+		const [key, value] = pair.split('=');
+		result[key] = decodeURIComponent(value);
 	});
-	return result; // Return the object containing the query variables and their values
+	return result;
 }
 const queryVars = getQueryVariables(currentUrl.href);
 console.log("---------------****##########****---------------")
@@ -1779,6 +1779,7 @@ function joinRoom(room, roomPassword) {
 			"userData": queryVars
 		}, function (err) {
 			if (err) {
+				showPage('#invalidUserPage');
 				alert(err);
 			} else {
 				showPage("#joinRoomPage");
@@ -1798,13 +1799,16 @@ function renderMainPage() {
 
 	setModerator(roomImIn["moderator"] || "0");
 
-	history.pushState({}, null, "?room=" + roomImIn["roomName"].split("###")[0]); //Change url to roomlink
+	// history.pushState({}, null, "?room=" + roomImIn["roomName"]); //Change url to roomlink
 
 	whiteboard.loadWhiteboard("#whiteboardContainer", {
 		whiteboardId: roomImIn["roomName"].replace(/[^0-9a-z]/gi, ''),
 		username: btoa(username),
 		backgroundGridUrl: './img/KtEBa3.png',
 		sendFunction: function (content) {
+			console.log('*************************send draw whiteboard***************************');
+			console.log(content);
+			console.log('*************************send draw whiteboard***************************');
 			sendDrawWhiteoard(content);
 		}
 	});

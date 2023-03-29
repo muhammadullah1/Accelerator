@@ -92,7 +92,7 @@ $(function () { //Document ready
 						$('#connectModal').find("#acceptDirectConnect").click(function () {
 							$($("#roomListContent").find(".roomLaBle[roomName=" + escape(decodeURIComponent(roomName)).replace(/[^a-zA-Z0-9 ]/g, "") + "]")[0]).click();
 						});
-					} 
+					}
 					else {
 						alert('session not find');
 					}
