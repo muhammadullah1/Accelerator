@@ -1,9 +1,30 @@
 const { Sequelize } = require('sequelize');
 const sequelize = require('../config/databaseConfig');
 
-const Session = sequelize.define('Session', {
+const Session = sequelize.define('session', {
   // Define the model attributes
-  roomName: {
+  id: {
+    type: Sequelize.UUID,
+    defaultValue: Sequelize.UUIDV4,
+    primaryKey: true
+  },
+  sessionName: {
+    type: Sequelize.STRING,
+    allowNull: false,
+  },
+  sessionId: {
+    type: Sequelize.STRING,
+    allowNull: false
+  },
+  classesId : {
+    type: Sequelize.STRING,
+    allowNull: false
+  },
+  teacherId : {
+    type: Sequelize.STRING,
+    allowNull: false
+  },
+  teacherName : {
     type: Sequelize.STRING,
     allowNull: true
   },
@@ -16,18 +37,17 @@ const Session = sequelize.define('Session', {
     allowNull: true,
     defaultValue: []
   },
-  from: {
-    type: Sequelize.DATE,
+  sessionDate : {
+    type: Sequelize.STRING,
     allowNull: false
   },
-  to: {
-    type: Sequelize.DATE,
+  startTime: {
+    type: Sequelize.STRING,
     allowNull: false
   },
-  deletedAt: {
-    type: Sequelize.DATE,
-    allowNull: true,
-    defaultValue: null
+  endTime: {
+    type: Sequelize.STRING,
+    allowNull: false
   },
   deletedBy: {
     type: Sequelize.STRING,
@@ -39,12 +59,12 @@ const Session = sequelize.define('Session', {
 });
 
 // create the table in the database
-Session.sync({ force: true })
+Session.sync()
   .then(() => {
-    console.log('User table created successfully.');
+    console.log('Session table created successfully.');
   })
   .catch((error) => {
-    console.error('Error creating User table:', error);
+    console.error('Error creating Session table:', error);
   });
 
 module.exports = Session;

@@ -1,15 +1,17 @@
-const Session = require('./models/session.model');
+const Session = require('../models/session.model');
 
-async function createSession(sessionData) {
+async function getSessions() {
   try {
-    const newUser = await Session.create(sessionData);
-    return newUser;
+    const sessions = await Session.findAll();
+    return sessions;
   } catch (error) {
     console.error(error);
     throw new Error('Server error');
   }
 }
 
+
+
 module.exports = {
-  createSession
+  getSessions
 };

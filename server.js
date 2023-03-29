@@ -15,6 +15,7 @@ var httpPort = config["http"]["port"] || 8080;
 var express = require('express');
 require('dotenv').config();
 const bodyParser = require('body-parser');
+const Joi = require('joi');
 const dbConfig = require('./config/databaseConfig.js');
 const app = express();
 app.use(express.json());
@@ -23,21 +24,23 @@ app.use(bodyParser.json());
 app.use(bodyParser.raw());
 var fs = require("fs-extra");
 const Session = require('./models/session.model');
+const { getSessions } = require('./services/session.service');
+// const sessionRoutes = require('./routes/session.route');
 
 
 
 //***************************** */
 // swager
 const swaggerUi = require("swagger-ui-express"),
-swaggerDocument = require("./swagger.json");
+    swaggerDocument = require("./swagger.json");
 // *******************************
 
 app.use(
     '/api-docs',
-    swaggerUi.serve, 
+    swaggerUi.serve,
     swaggerUi.setup(swaggerDocument)
-  );
-  
+);
+
 
 // check databse connecion
 console.log('---------------------------------')
@@ -52,7 +55,7 @@ console.log('---------------------------------');
 
 // To synchronize all the models with the database
 
-dbConfig.sync({ force: true })
+dbConfig.sync()
     .then(() => {
         console.log('All models were synchronized successfully.');
     })
@@ -180,90 +183,125 @@ setTimeout(function () {
 }, 200);
 
 /*************************/
-/*** GET USER ***/
+/*** CRUD ROOM OR SESSION REQUEST API ROUTE ***/
 /*************************/
-
-app.get('/session', async (req, res) => {
-    try {
-        const users = await Session.findAll(); // find all users in the database
-        res.json(users); // return the users as JSON
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-
-
-app.post('/session', async (req, res) => {
-    try {
-        const newUser = await Session.create({
-            roomName: req.body.roomName,
-            creater: req.body.creater,
-            users: req.body.users // assuming 'users' is an array of user objects
-        });
-        res.status(201).json(newUser);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-/*************************/
-/*** CREATE ROOM REQUEST API ROUTE ***/
-/*************************/
-
 
 io.sockets.on('connection', async function (socket) {
-    app.post('/createRoom', (req, res) => {
-        var { roomName, roomPassword = '', creator, users } = req.body;
-        console.log("----------outside socket function----------", users);
+    app.post('/session', async (req, res) => {
+        const { sessionName, roomPassword = '', creater, users } = req.body;
 
-        socket.emit("createRoom", {
-            "roomName": roomName,
-            "roomPassword": roomPassword,
-            "creator": creator,
-            "users": users,
-            "permanent": true
-        }, function (err) {
-            if (err) {
-                res.status(500).send({
-                    error: err
-                });
-            }
+        // Define Joi validation schema
+        const schema = Joi.object({
+            sessionName: Joi.string().required(),
+            sessionId: Joi.string().required(),
+            classesId: Joi.string().required(),
+            creater: Joi.string().required(),
+            teacherId: Joi.string().optional(),
+            teacherName: Joi.string().optional(),
+            users: Joi.array().items(Joi.object({
+                name: Joi.string().required(),
+                id: Joi.string().uuid().required(),
+                role: Joi.string().valid('student', 'teacher').required()
+            })).min(1).required(),
+            sessionDate: Joi.string().required(),
+            startTime: Joi.string().required(),
+            endTime: Joi.string().required(),
+            deletedBy: Joi.string().optional()
         });
 
-        // Logic to create a room
-        var roomName = req.body.roomName.trim();
-        if (roomName == "") {
-            res.status(400).send("Invalid Roomname!");
-        } else if (allRoomAttr[roomName]) {
-            res.status(409).send({
-                error: "A room with this name already exists!"
-            });
-        } else {
-            allRoomAttr[roomName] = {
-                "moderator": null,
+        try {
+            // Validate the req.body object against the schema
+            const { error, value } = schema.validate(req.body);
+            // If there are validation errors, return a 400 Bad Request response
+            if (error) {
+                res.status(400).json({ error: error.details[0].message });
+                return;
+            };
+
+            const trimmedRoomName = sessionName.trim();
+            const formattedRoomName = trimmedRoomName.replace(/\s+/g, '_');
+
+            socket.emit("createRoom", {
+                "roomName": formattedRoomName,
+                "roomPassword": '',
+                "creator": creater,
                 "users": users,
-                "roomName": roomName,
-                "roomPassword": roomPassword,
-                "creator": creator,
-                "lastVisit": +new Date(),
                 "permanent": true
-            }
-            var cleanRooms = getAllRoomsWithoutPasswords();
-            socket.broadcast.emit('getAllRooms', cleanRooms);
-            socket.emit('getAllRooms', cleanRooms);
-            saveAllRoomAttr();
-            res.status(201).send({
-                message: "Room created successfully"
+            }, function (err) {
+                if (err) {
+                    res.status(500).send({
+                        error: err
+                    });
+                }
             });
+
+            // Logic to create a room
+            if (formattedRoomName == "") {
+                res.status(400).send("Invalid Roomname!");
+            } else if (allRoomAttr[formattedRoomName]) {
+                res.status(409).send({
+                    error: "A room with this name already exists!"
+                });
+            } else {
+                allRoomAttr[formattedRoomName] = {
+                    "moderator": null,
+                    "users": users,
+                    "roomName": formattedRoomName,
+                    "roomPassword": roomPassword,
+                    "creator": creater,
+                    "lastVisit": +new Date(),
+                    "permanent": true
+                }
+                var cleanRooms = getAllRoomsWithoutPasswords();
+                socket.broadcast.emit('getAllRooms', cleanRooms);
+                socket.emit('getAllRooms', cleanRooms);
+                saveAllRoomAttr();
+                await Session.create({ ...value, formattedRoomName });
+                res.status(201).send({
+                    message: "Room created successfully"
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            throw new Error('Server error');
         }
     });
 });
 
-//retrive the user of a specfic room
-//const roomUsers = allRoomAttr['room1'].users;
+/*************************/
+/*** GET ALL SESSION  ***/
+/*************************/
+
+app.get('/session', async (req, res) => {
+    try {
+        const sessions = await Session.findAll();
+        res.status(200).json(sessions);
+    } catch (error) {
+        console.error(error);
+        throw new Error('Server error');
+    }
+})
+
+//   app.get('/session', async (req, res) => {
+//     try {
+//       const sessions = await Session.findAll();
+// console.log(sessions[0].session.dataValues)
+
+//       // Parse the string data in each session object
+//       const parsedSessions = sessions.map(session => {
+//         const parsedData = JSON.parse(session.dataValues.data);
+//         return {
+//           ...session.dataValues,
+//           data: parsedData
+//         }
+//       });
+
+//       res.status(200).json(parsedSessions);
+//     } catch (error) {
+//       console.error(error);
+//       throw new Error('Server error');
+//     }
+//   });
 
 
 
@@ -367,7 +405,27 @@ io.sockets.on('connection', function (socket) {
         callback(config["accConfig"]);
     });
 
-    socket.on('join', function (content, callback) {
+    socket.on('join', async function (content, callback) {
+        const user = content.userData;
+        console.log(user);
+
+        // user validation
+        async function getSessions() {
+            try {
+                const sessions = await Session.findAll();
+                console.log("************ inside funtion dtabaseqeury ***************");
+                console.log(sessions);
+                return sessions;
+            } catch (error) {
+                console.error(error);
+                throw new Error('Server error');
+            }
+        }
+        console.log("************database query inside join room ***************");
+        const sessions = await getSessions();
+        console.log(sessions);
+
+
         content = escapeAllContentStrings(content);
         //console.log("[" + socket.id + "] join ", content);
         roomName = content.roomName ? content.roomName.trim() : "";
