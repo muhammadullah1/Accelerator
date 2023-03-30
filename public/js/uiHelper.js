@@ -1,5 +1,44 @@
 var pitemWebcamStreams = {};
 var allRooms = {};
+var user = {};
+// getting data from url 
+var currentUrl = window.location;
+console.log("get url data");
+function getQueryVariables(url) {
+	const queryString = url.split('?')[1];
+	if (!queryString) return {};
+	const pairs = queryString.split('&');
+	const result = {};
+	pairs.forEach((pair) => {
+		const [key, value] = pair.split('=');
+		result[key] = decodeURIComponent(value);
+	});
+	return result;
+}
+const queryVars = getQueryVariables(currentUrl.href);
+console.log("---------------****##########****---------------")
+console.log(queryVars);
+console.log("---------------****##########****---------------")
+
+// calling user to validate
+$.ajax({
+	url: 'http://localhost:8080/session',
+	type: 'POST',
+	dataType: 'json',
+	async: false,
+	success: function(data) {
+	  // Handle the data returned by the API
+	  console.log('-----------api callling dataaaaaaaaaaaaaaaa----------------');
+	  console.log(data);
+	},
+	error: function(xhr, status, error) {
+	  // Handle errors
+	  console.log('-----------api callling dataaaaaaaaaaaaaaaa----------------');
+	  console.log('Error:', error);
+	  alert(error)
+	}
+  });
+  
 
 function addUserPItem(content) {
 	var userId = content.userId;
@@ -1746,25 +1785,6 @@ function filterRooms() {
 	});
 }
 
-// getting data from url 
-var currentUrl = window.location;
-console.log("get url data");
-function getQueryVariables(url) {
-	const queryString = url.split('?')[1];
-	if (!queryString) return {};
-	const pairs = queryString.split('&');
-	const result = {};
-	pairs.forEach((pair) => {
-		const [key, value] = pair.split('=');
-		result[key] = decodeURIComponent(value);
-	});
-	return result;
-}
-const queryVars = getQueryVariables(currentUrl.href);
-console.log("---------------****##########****---------------")
-console.log(queryVars);
-console.log("---------------****##########****---------------")
-
 
 var joinedRoom = false;
 function joinRoom(room, roomPassword) {
@@ -1800,7 +1820,6 @@ function renderMainPage() {
 	setModerator(roomImIn["moderator"] || "0");
 
 	// history.pushState({}, null, "?room=" + roomImIn["roomName"]); //Change url to roomlink
-
 	whiteboard.loadWhiteboard("#whiteboardContainer", {
 		whiteboardId: roomImIn["roomName"].replace(/[^0-9a-z]/gi, ''),
 		username: btoa(username),
@@ -1812,6 +1831,8 @@ function renderMainPage() {
 			sendDrawWhiteoard(content);
 		}
 	});
+
+	// $('#whiteboardContainer').css('pointer-events', 'none');
 
 	$(".whiteboardTool").click(function () {
 		$(".whiteboardTool").removeClass("alert-danger");

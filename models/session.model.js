@@ -14,11 +14,12 @@ const Session = sequelize.define('session', {
   },
   sessionId: {
     type: Sequelize.STRING,
-    allowNull: false
+    allowNull: false,
+    unique: true
   },
   classesId : {
     type: Sequelize.STRING,
-    allowNull: false
+    allowNull: false,
   },
   teacherId : {
     type: Sequelize.STRING,
@@ -31,11 +32,6 @@ const Session = sequelize.define('session', {
   creater: {
     type: Sequelize.STRING,
     allowNull: true
-  },
-  users: {
-    type: Sequelize.ARRAY(Sequelize.STRING),
-    allowNull: true,
-    defaultValue: []
   },
   sessionDate : {
     type: Sequelize.STRING,
