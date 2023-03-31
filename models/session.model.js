@@ -1,7 +1,8 @@
 const { Sequelize } = require('sequelize');
 const sequelize = require('../config/databaseConfig');
+const User = require('./user.model');
 
-const Session = sequelize.define('session', {
+const Session = sequelize.define('Session', {
   // Define the model attributes
   id: {
     type: Sequelize.UUID,
@@ -14,11 +15,12 @@ const Session = sequelize.define('session', {
   },
   sessionId: {
     type: Sequelize.STRING,
-    allowNull: false
+    allowNull: false,
+    unique: true
   },
   classesId : {
     type: Sequelize.STRING,
-    allowNull: false
+    allowNull: false,
   },
   teacherId : {
     type: Sequelize.STRING,
@@ -31,11 +33,6 @@ const Session = sequelize.define('session', {
   creater: {
     type: Sequelize.STRING,
     allowNull: true
-  },
-  users: {
-    type: Sequelize.ARRAY(Sequelize.STRING),
-    allowNull: true,
-    defaultValue: []
   },
   sessionDate : {
     type: Sequelize.STRING,
