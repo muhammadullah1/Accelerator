@@ -34,7 +34,7 @@ const { getSessions } = require('./services/session.service');
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1:8080');
     next();
-  });
+});
 
 //***************************** */
 // swager
@@ -62,7 +62,7 @@ console.log('---------------------------------');
 
 // To synchronize all the models with the database
 
-dbConfig.sync({ force : true})
+dbConfig.sync()
     .then(() => {
         console.log('All models were synchronized successfully.');
     })
@@ -252,7 +252,7 @@ io.sockets.on('connection', async function (socket) {
             } else {
                 allRoomAttr[formattedRoomName] = {
                     "moderator": null,
-                    "users": users,
+                    "users": req.body.users,
                     "roomName": formattedRoomName,
                     "roomPassword": roomPassword,
                     "creator": creater,
@@ -263,7 +263,17 @@ io.sockets.on('connection', async function (socket) {
                 socket.broadcast.emit('getAllRooms', cleanRooms);
                 socket.emit('getAllRooms', cleanRooms);
                 saveAllRoomAttr();
-                await Session.create({ ...value, formattedRoomName });
+                console.log("------------------------vlaues----------------");
+                // console.log(value);
+                const session = await Session.create({ ...value, formattedRoomName });
+                const dbUsers = await User.bulkCreate(value.users);
+                console.log(session)
+                console.log('--------between-----------')
+                console.log(users)
+                // Create the association records
+                await Promise.all(
+                    dbUsers.map((user) => session.addUser(user, { through: { sessionId: session.dataValues.id, userId: user.id } }))
+                );
                 res.status(201).send({
                     message: "Room created successfully"
                 });
@@ -281,29 +291,42 @@ io.sockets.on('connection', async function (socket) {
 
 app.get('/session', async (req, res) => {
     try {
-        const sessions = await Session.findAll();
+        const sessions = await Session.findAll({
+            include: [
+                { 
+                    model: User,
+                    through: UserSession 
+                }
+            ]
+        });
         res.status(200).json(sessions);
     } catch (error) {
         console.error(error);
         throw new Error('Server error');
     }
 });
+
 
 
 
 /*************************/
 /*** GET data for chekcing teacher ***/
 /*************************/
-app.post('/checkrole', async (req, res) => {
+app.post('/checkrole/:userId', async (req, res) => {
     try {
-        const sessions = await Session.findAll();
-        res.status(200).json(sessions);
+        const user = await User.findOne({ where: { userId: req.params.userId } });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const role = user.role;
+        res.status(200).json({ role });
     } catch (error) {
         console.error(error);
-        throw new Error('Server error');
+        res.status(500).json({ message: 'Server error' });
     }
 });
 
+  
 
 
 

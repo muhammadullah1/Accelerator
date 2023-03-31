@@ -1,6 +1,6 @@
 var pitemWebcamStreams = {};
 var allRooms = {};
-var user = {};
+var role = null;
 // getting data from url 
 var currentUrl = window.location;
 console.log("get url data");
@@ -22,23 +22,24 @@ console.log("---------------****##########****---------------")
 
 // calling user to validate
 $.ajax({
-	url: 'http://localhost:8080/session',
+	url: `http://localhost:8080/checkrole/${queryVars.userId}`,
 	type: 'POST',
 	dataType: 'json',
 	async: false,
-	success: function(data) {
-	  // Handle the data returned by the API
-	  console.log('-----------api callling dataaaaaaaaaaaaaaaa----------------');
-	  console.log(data);
+	success: function (data) {
+		// Handle the data returned by the API
+		user = data;
+		console.log('-----------api callling dataaaaaaaaaaaaaaaa----------------');
+		console.log(data);
 	},
-	error: function(xhr, status, error) {
-	  // Handle errors
-	  console.log('-----------api callling dataaaaaaaaaaaaaaaa----------------');
-	  console.log('Error:', error);
-	  alert(error)
+	error: function (xhr, status, error) {
+		// Handle errors
+		console.log('-----------api callling dataaaaaaaaaaaaaaaa----------------');
+		console.log('Error:', error);
+		alert(error)
 	}
-  });
-  
+});
+
 
 function addUserPItem(content) {
 	var userId = content.userId;
@@ -1825,14 +1826,22 @@ function renderMainPage() {
 		username: btoa(username),
 		backgroundGridUrl: './img/KtEBa3.png',
 		sendFunction: function (content) {
-			console.log('*************************send draw whiteboard***************************');
-			console.log(content);
-			console.log('*************************send draw whiteboard***************************');
 			sendDrawWhiteoard(content);
 		}
 	});
 
-	// $('#whiteboardContainer').css('pointer-events', 'none');
+	console.log("================cjheckin teafckerarf========================");
+	console.log(user.role)
+	console.log(user.role === 'teacher')
+
+	if (user.role === 'student') {
+		$('#whiteboardContainer').css('pointer-events', 'none');
+		$('#whiteboardrotatedtool').css('display', 'none');
+		$('#saveAsImage').css('display', 'none');
+		$('#saveAsJson').css('display', 'none');
+		$('#showNotes').css('display', 'none');
+		$('#showFiles').css('display', 'none');
+	}
 
 	$(".whiteboardTool").click(function () {
 		$(".whiteboardTool").removeClass("alert-danger");

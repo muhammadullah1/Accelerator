@@ -1,7 +1,8 @@
 const { Sequelize } = require('sequelize');
 const sequelize = require('../config/databaseConfig');
+const User = require('./user.model');
 
-const Session = sequelize.define('session', {
+const Session = sequelize.define('Session', {
   // Define the model attributes
   id: {
     type: Sequelize.UUID,
