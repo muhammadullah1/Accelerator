@@ -22,10 +22,19 @@ RUN npm install \
     && groupadd -r accelerator && useradd -r -g accelerator -G audio,video accelerator \
     && mkdir -p /home/accelerator/Downloads \
     && chown -R accelerator:accelerator /home/accelerator \
-    && chown -R accelerator:accelerator /app
+    && chown -R accelerator:accelerator /usr/src/app
 
 USER accelerator
 COPY . .
+
+ENV DATABASE_TYPE postgres
+ENV DATABASE_HOST localhost
+ENV DATABASE_PORT 5432
+ENV DATABASE_USERNAME postgres
+ENV DATABASE_PASSWORD postgrespw
+ENV DATABASE_NAME whiteboard_db1
+ENV DATABASE_SYNCHRONIZE true
+ENV DATABASE_MAX_CONNECTIONS 100
 
 EXPOSE 8080
 CMD [ "node", "server.js" ]

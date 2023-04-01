@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: postgrespw
+    ports:
+      - 5432:32769
+    volumes:
+      - data:/var/lib/postgresql/data
+
+  myapp:
+    build:
+      context: .
+    environment:
+      - DATABASE_TYPE=postgres
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=32769
+      - DATABASE_USERNAME=postgres
+      - DATABASE_PASSWORD=postgrespw
+      - DATABASE_NAME=whiteboard_db1
+      - DATABASE_SYNCHRONIZE=true
+      - DATABASE_MAX_CONNECTIONS=100
+    ports:
+      - 8080:8080
+    command: node server.js
+
+volumes:
+  data:

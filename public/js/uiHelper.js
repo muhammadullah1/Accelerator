@@ -28,8 +28,8 @@ $.ajax({
 		user = data;
 	},
 	error: function (xhr, status, error) {
-		alert('user not found');
-		showPage('#invalidUserPage');
+		// alert('user not found');
+		// showPage('#invalidUserPage');
 	}
 });
 

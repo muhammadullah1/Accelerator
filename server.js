@@ -1713,3 +1713,5 @@ function escapeAllContentStrings(content, cnt) {
     }
     return content;
 }
+
+//docker 1.docker build -t acc . and to run 2.run docker run -p 8080:8080 acc
