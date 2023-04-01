@@ -3,7 +3,7 @@ var allRooms = {};
 var role = null;
 // getting data from url 
 var currentUrl = window.location;
-console.log("get url data");
+// console.log("get url data");
 function getQueryVariables(url) {
 	const queryString = url.split('?')[1];
 	if (!queryString) return {};
@@ -16,9 +16,6 @@ function getQueryVariables(url) {
 	return result;
 }
 const queryVars = getQueryVariables(currentUrl.href);
-console.log("---------------****##########****---------------")
-console.log(queryVars);
-console.log("---------------****##########****---------------")
 
 // calling user to validate
 $.ajax({
@@ -29,14 +26,10 @@ $.ajax({
 	success: function (data) {
 		// Handle the data returned by the API
 		user = data;
-		console.log('-----------api callling dataaaaaaaaaaaaaaaa----------------');
-		console.log(data);
 	},
 	error: function (xhr, status, error) {
-		// Handle errors
-		console.log('-----------api callling dataaaaaaaaaaaaaaaa----------------');
-		console.log('Error:', error);
-		alert(error)
+		alert('user not found');
+		showPage('#invalidUserPage');
 	}
 });
 
@@ -688,7 +681,7 @@ function setGetMicToUser(data) {
 	var disableHandUp = data["disableHandUp"];
 	var userId = data["userid"];
 	var mic = data["mic"];
-	console.log(data);
+	// console.log(data);
 	if (disableHandUp === true) {
 		if (userId == ownSocketId) {
 			$("#handsUpBtn").hide();
@@ -771,24 +764,35 @@ function setModerator(id) {
 		}
 		$(this).find(".micToSpeak").css("color", "silver");
 	});
-	if (id == "0") {
-		var placeholder = $('<div id="moderatorPlaceholder" style="margin-bottom:5px; text-align: center; cursor:pointer;" class="">' +
-			'<div style="height: 55px; padding: 15px;">' +
-			'Moderation <i class="fa fa-refresh"></i>' +
-			'</div>' +
-			'</div>');
-		placeholder.click(function () {
-			sendModeratorId(ownSocketId);
-		});
-		$("#moderatorDiv").append(placeholder);
-	} else {
-		$("#moderatorDiv").append($(".user-" + id));
-		if ($(".user-" + id).find("video").length > 0) {
-			$(".user-" + id).find("video").get(0).play();
-		}
 
-		$(".praesiCursor").css({ "color": $(".user-" + id + " .colorPickerDiv").css("background-color") });
+if (id == "0") {
+	var placeholder = $('<div id="moderatorPlaceholder" style="margin-bottom:5px; text-align: center; cursor:pointer;" class="">' +
+	  '<div style="height: 55px; padding: 15px;">' +
+	  'Present Whiteboard <i class="fa fa-refresh"></i>' +
+	  '</div>' +
+	  '</div>');
+	if (user.role === 'teacher') {
+	  placeholder.click(function () {
+		sendModeratorId(ownSocketId);
+	  });
+	  $("#moderatorDiv").append(placeholder);
+	} else {
+	  placeholder.css("pointer-events", "none"); // disable click event for students
+	  $("#moderatorDiv").append(placeholder);
 	}
+  } else {
+	if (user.role === 'teacher') {
+	  $("#moderatorDiv").append($(".user-" + id));
+	  if ($(".user-" + id).find("video").length > 0) {
+		$(".user-" + id).find("video").get(0).play();
+	  }
+	  $(".praesiCursor").css({ "color": $(".user-" + id + " .colorPickerDiv").css("background-color") });
+	} else {
+	  $("#moderatorDiv").css("pointer-events", "none"); // disable click event for students
+	  $("#moderatorDiv").append($(".user-" + id));
+	}
+  }
+  
 	refreshMuteUnmuteAll();
 
 	if (id == ownSocketId) {
@@ -936,7 +940,7 @@ function addSecondHandUp(content) {
 	var senderId = content["senderId"];
 	var resiverId = content["resiverUserId"];
 	var trueFalse = content["trueFalse"];
-	console.log(content);
+	// console.log(content);
 	if ($("#handsUpAlertDivContainer").find('.userCard-' + resiverId).length >= 1) {
 		if ($("#handsUpAlertDivContainer").find('.userCard-' + resiverId).find(".userSubCard-" + senderId).length == 0 && trueFalse == true) {
 			var name = getUserNameFromId(senderId);
@@ -1316,7 +1320,7 @@ function stopLocalVideo() {
 }
 
 function apendScreenshareStream(stream, streamAttr) {
-	console.log("ADD SCREENSHARE!")
+	// console.log("ADD SCREENSHARE!")
 	var streamSocketId = streamAttr.streamSocketId;
 	if (streamSocketId == ownSocketId) {
 		$("#startScreenShareBtn").removeAttr("disabled");
@@ -1370,7 +1374,7 @@ function updateConfGridView(leavingConfTab) {
 		})
 
 		$.each($("video,canvas"), function () { //Put the videos back in place
-			console.log("IDDD", "#video" + $(this).attr("id"))
+			// console.log("IDDD", "#video" + $(this).attr("id"))
 			$("#video" + $(this).attr("id")).append($(this))
 			$("#video" + $(this).attr("id")).parents(".videoContainer ").show();
 			if ($(this).is("video")) {
@@ -1665,7 +1669,7 @@ function onChangeSlide() {
 
 function removeUserFromPage(id) {
 	$.each($("video,canvas"), function () { //Put the videos back in place from the gridview so we will remove them as well
-		console.log("IDDD", "#video" + $(this).attr("id"))
+		// console.log("IDDD", "#video" + $(this).attr("id"))
 		$("#video" + $(this).attr("id")).append($(this))
 		$("#video" + $(this).attr("id")).parents(".videoContainer ").show();
 		if ($(this).is("video")) {
@@ -1697,7 +1701,7 @@ function changeUserInfos(id, name, color) {
 
 function renderAllRooms(roomList) {
 	allRooms = roomList;
-	console.log(roomList);
+	// console.log(roomList);
 	$("#roomListContent tbody").empty();
 
 	// $("#addNewRoomPanel").show();
@@ -1830,9 +1834,6 @@ function renderMainPage() {
 		}
 	});
 
-	console.log("================cjheckin teafckerarf========================");
-	console.log(user.role)
-	console.log(user.role === 'teacher')
 
 	if (user.role === 'student') {
 		$('#whiteboardContainer').css('pointer-events', 'none');
@@ -1963,7 +1964,7 @@ function renderMainPage() {
 			var imgUploadURL = modHtml.find("#imgUploadURL").val();
 			var imgUploadSelectURL = modHtml.find("#imgUploadSelect").val();
 			var option = modHtml.find('input[type=radio]:checked').val();
-			console.log(imgUploadURL, imgUploadSelectURL, option)
+			// console.log(imgUploadURL, imgUploadSelectURL, option)
 			var url = null;
 			if (option == 0) { //form acc cloud
 				if (imgUploadSelectURL && imgUploadSelectURL != "" && isImageFileName(imgUploadSelectURL)) {
@@ -2305,7 +2306,7 @@ function render3ObjsTable() {
 							return;
 						}
 						var url = "./3dViewer/index.html?folder=../3dObjs/" + name + "/&obj=" + objFile + "&mtl=" + mtlFile;
-						console.log(url);
+						// console.log(url);
 						show3DObj(url);
 					});
 					tr.find(".trash").click(function () {

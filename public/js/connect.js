@@ -37,7 +37,7 @@ var loadMCUConnection = function (roomToConnect, connectionReadyCallback) {
         } else {
             setUserColor(ownSocketId, ownColor);
             myMCU.on("newStreamPublished", function (content) {
-                console.log(content)
+                // console.log(content)
                 // var roomname = content["roomname"];
                 // var attributes = content["attributes"];
                 var streamId = content["streamId"];
@@ -65,12 +65,12 @@ var loadMCUConnection = function (roomToConnect, connectionReadyCallback) {
             myMCU.on("streamAdded", function (stream) {
                 var streamAttr = stream.streamAttributes;
 
-                console.log(stream)
+                // console.log(stream)
 
                 var streamId = stream.id ? stream.id.replace("{", "").replace("}", "") : streamAttr["streamId"];
 
                 if (!stream.hasVideo && stream.hasAudio) {
-                    console.log("ADD GLOBAL AUDIO!")
+                    // console.log("ADD GLOBAL AUDIO!")
                     $("#mediaC").append('<div id="audio' + streamId + '" class="audiocontainer" style="width: 320px; height: 217px; display:none;"></div>');
                     myMCU.showMediaStream("audio" + streamId, stream);
 
@@ -90,7 +90,7 @@ var loadMCUConnection = function (roomToConnect, connectionReadyCallback) {
                 if (streamAttr && streamAttr.screenshare) {   //Screenshare
                     apendScreenshareStream(stream, streamAttr);
                 } else if (stream.hasVideo || streamAttr.hasVideo) {  //Video Stream
-                    console.log("ADD VIDEO!")
+                    // console.log("ADD VIDEO!")
                     $("#video" + streamId).remove(); //just in case so no double cam
                     if (streamAttr && streamAttr["itemId"]) { //Webcamstream in userPitem
                         if (streamSocketId == ownSocketId) {
@@ -150,7 +150,7 @@ var loadMCUConnection = function (roomToConnect, connectionReadyCallback) {
             refreshMuteUnmuteAll();
 
             myMCU.on("streamUnpublished", function (streamAttributes) {
-                console.log("streamUnpublished", streamAttributes)
+                // console.log("streamUnpublished", streamAttributes)
                 var socketId = streamAttributes.socketId;
                 var streamId = streamAttributes.streamId;
                 var screenshare = streamAttributes.screenshare;
@@ -257,7 +257,7 @@ var loadMCUConnection = function (roomToConnect, connectionReadyCallback) {
             function initOtherStreams() {
                 connectionReadyCallback();
                 myMCU.getAllStreamsFromRoom(roomToConnect["roomName"], function (allStreamsFromRoom) {
-                    console.log(allStreamsFromRoom);
+                    // console.log(allStreamsFromRoom);
                     for (var i in allStreamsFromRoom) {
                         if (ownSocketId != allStreamsFromRoom[i].socketId) { //Dont subscribe to own stream
                             (function () {
@@ -631,7 +631,7 @@ function initSocketIO() {
         }
 
         signaling_socket.on('addPeer', function (content) {
-            console.log('Signaling server said to add peer:', content);
+            // console.log('Signaling server said to add peer:', content);
             var remotSocketId = content.socketId;
             var username = content.username;
             var color = content.color;
@@ -803,7 +803,7 @@ function initSocketIO() {
         });
 
         signaling_socket.on('praesiConvertion', function (content) {
-            console.log("YEAHH", content);
+            // console.log("YEAHH", content);
             var type = content["type"];
             var msg = content["msg"];
             var textHTML = "";

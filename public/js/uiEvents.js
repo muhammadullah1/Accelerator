@@ -56,6 +56,8 @@ $(function () { //Document ready
 			async function continueToRoomPage() {
 				//Join a room directly if url get parameter is set   
 				showPage("#roomPage");
+				$("#roomList").css("display", "none");
+
 				sendGetAllRooms();
 				var roomName = getQueryVariable("session");
 				var allrooms = [];
@@ -298,7 +300,7 @@ $(function () { //Document ready
 						"3. Unplug/disable unused audio devices, refresh the page and try again.<br>");
 					console.log(err)
 				});
-				console.log(audioInputSelect.val())
+				// console.log(audioInputSelect.val())
 			})
 			audioStopBtn.click(function () {
 				if (sourceNode) {
@@ -401,7 +403,7 @@ $(function () { //Document ready
 
 				$('#setUpCheckModal').modal('hide');
 			})
-			console.log(devices)
+			// console.log(devices)
 			//Remove req device
 			stream.getTracks().forEach(function (track) {
 				track.stop();
@@ -554,8 +556,10 @@ $(function () { //Document ready
 	});
 
 	$("#logoutBtn").click(function () {
-		var link = window.location.href.split("/?")[0] + '/';
-		window.location.replace(link);
+		// var link = window.location.href.split("/?")[0] + '/';
+		// window.location.replace(link);
+		window.location.reload();
+		  
 	});
 
 	$('#toggle_fullscreen').on('click', function () {
@@ -663,7 +667,7 @@ $(function () { //Document ready
 					try {
 						stream = await _startScreenCapture();
 					} catch (e) {
-						console.log(e)
+						// console.log(e)
 						writeToChat("ERROR", "Access to screen rejected!");
 						$("#startScreenShareBtn").removeAttr("disabled", "false");
 						$("#startScreenShareBtn").text("start screenshare!");
@@ -947,7 +951,7 @@ $(function () { //Document ready
 			}
 
 			if (currentTab == "#homeScreen" && playingSnake) {
-				console.log(event.which);
+				// console.log(event.which);
 				signaling_socket.emit('snakeKeyPressed', event.which);
 			}
 		}

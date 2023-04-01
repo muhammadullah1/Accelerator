@@ -44,7 +44,7 @@ function ezMCU(socket, newConfig = {}) {
             stream.audioMuted = false;
             var streamId = stream.id.replace("{", "").replace("}", "");
             stream["streamAttributes"] = _this.allStreamAttributes[streamId];
-            console.log("New Stream on peer:", streamId)
+            // console.log("New Stream on peer:", streamId)
             stream.hasVideo = (stream.getVideoTracks().length > 0);
             stream.hasAudio = (stream.getAudioTracks().length > 0);
 
@@ -52,7 +52,7 @@ function ezMCU(socket, newConfig = {}) {
         })
 
         _this.peers[peerId].on('connect', () => {
-            console.log('CONNECTED PEER');
+            // console.log('CONNECTED PEER');
             if (connectedCallback)
                 connectedCallback();
         })
@@ -69,7 +69,7 @@ function ezMCU(socket, newConfig = {}) {
     };
     this.init = function () {
         socket.on("connect", function () {
-            console.log("mcu socket connected");
+            // console.log("mcu socket connected");
 
             socket.on("mcu_signaling", function (content) {
 
@@ -118,11 +118,11 @@ function ezMCU(socket, newConfig = {}) {
                 var d = content["d"];
 
                 if (!knownStreams[streamId]) {
-                    console.log("CREATE STREAM!");
+                    // console.log("CREATE STREAM!");
                     knownStreams[streamId] = true;
                     var steamAttr = _this.allStreamAttributes[streamId];
                     steamAttr["canvasStream"] = true;
-                    console.log(steamAttr);
+                    // console.log(steamAttr);
 
 
                     const vpxdec_ = workerBuffer[workerBuffer.length - 1];
@@ -180,7 +180,7 @@ function ezMCU(socket, newConfig = {}) {
             })
 
             socket.on("mcu_onNewStreamPublished", function (content) {
-                console.log("mcu_onNewStreamPublished", content)
+                // console.log("mcu_onNewStreamPublished", content)
                 // var username = content["username"];
                 // var socketId = content["socketId"];
                 // var roomname = content["roomname"];
@@ -209,9 +209,9 @@ function ezMCU(socket, newConfig = {}) {
             roomname: roomname,
             username: username
         }, function (mcuConfig) {
-            console.log("mcuConfig", mcuConfig)
+            // console.log("mcuConfig", mcuConfig)
             _this.mcuConfig = mcuConfig;
-            console.log("JOINED!");
+            // console.log("JOINED!");
             callback();
         });
     };
@@ -277,13 +277,13 @@ function ezMCU(socket, newConfig = {}) {
             _this.allStreamAttributes = activeStreamAttrs;
             //Callback
             callback(activeStreamAttrs);
-            console.log("all streams", activeStreamAttrs)
+            // console.log("all streams", activeStreamAttrs)
         })
     };
     this.subscribeToStream = function (streamId, callback) {
         var _this = this;
         var instanceTo = _this.allStreamAttributes[streamId] ? _this.allStreamAttributes[streamId]["instanceTo"] : "";
-        console.log("_this.allStreamAttributes", _this.allStreamAttributes[streamId])
+        // console.log("_this.allStreamAttributes", _this.allStreamAttributes[streamId])
 
         //if this is a clientProccesedStream we dont need to connect to LBs
         if (_this.allStreamAttributes && _this.allStreamAttributes[streamId] && _this.allStreamAttributes[streamId]["clientProcessedStream"] && _this.allStreamAttributes[streamId]["hasVideo"]) {
@@ -295,7 +295,7 @@ function ezMCU(socket, newConfig = {}) {
         }
 
         if (_this.peers[instanceTo] && _this.peers[instanceTo].isConnected) {
-            console.log("REQEST THE STREAM!!", streamId)
+            // console.log("REQEST THE STREAM!!", streamId)
             socket.emit("mcu_reqStreamFromLB", {
                 "instanceFrom": instanceTo,
                 "streamId": streamId,
@@ -308,10 +308,10 @@ function ezMCU(socket, newConfig = {}) {
             //We need to connect to the instance first
             _this.makeNewPeer(instanceTo, function () {
                 //Connected callback
-                console.log("LOADBALANCER CONNECTED (Without stream add)!!!");
+                // console.log("LOADBALANCER CONNECTED (Without stream add)!!!");
             });
 
-            console.log("REQEST THE STREAM!!")
+            // console.log("REQEST THE STREAM!!")
             socket.emit("mcu_reqStreamFromLB", {
                 "instanceFrom": instanceTo,
                 "streamId": streamId,
@@ -344,7 +344,7 @@ function ezMCU(socket, newConfig = {}) {
                 streamAttributes["active"] = true;
 
                 socket.emit("mcu_registerStream", streamAttributes, function (err, setStreamAttributes) {
-                    console.log("setStreamAttributes", setStreamAttributes, stream)
+                    // console.log("setStreamAttributes", setStreamAttributes, stream)
                     if (err) {
                         callback(err)
                         console.error(err)
@@ -399,7 +399,7 @@ function ezMCU(socket, newConfig = {}) {
             });
         } else {
             socket.emit("mcu_registerStream", streamAttributes, function (err, setStreamAttributes) {
-                console.log("setStreamAttributes", setStreamAttributes, stream)
+                // console.log("setStreamAttributes", setStreamAttributes, stream)
                 if (err) {
                     callback(err)
                     console.error(err)
@@ -417,10 +417,10 @@ function ezMCU(socket, newConfig = {}) {
                         }, 500)
                     } else if (!_this.peers[instanceTo]) {
                         //We need to connect to the instance first
-                        console.log("CONNECT TO LB!!!", instanceTo);
+                        // console.log("CONNECT TO LB!!!", instanceTo);
                         _this.makeNewPeer(instanceTo, function () {
                             //Connected callback
-                            console.log("LOADBALANCER CONNECTED (With streamadd)!!!");
+                            // console.log("LOADBALANCER CONNECTED (With streamadd)!!!");
                             //_this.peers[instanceTo].addStream();
                             callback();
                         }, stream);
@@ -429,7 +429,7 @@ function ezMCU(socket, newConfig = {}) {
                             "instanceTo": instanceTo
                         });
                     } else {
-                        console.log("Problem while connecting to the given streaming instance! Check logs.", setStreamAttributes)
+                        // console.log("Problem while connecting to the given streaming instance! Check logs.", setStreamAttributes)
                         callback("Problem while connecting to the given streaming instance! Check logs.")
                     }
                 }

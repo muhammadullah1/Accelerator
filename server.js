@@ -426,64 +426,6 @@ io.sockets.on('connection', function (socket) {
 
     socket.on('join', async function (content, callback) {
         const user = content.userData;
-        const today = new Date().toISOString().slice(0, 10);
-        const isDateMatched = today === user.sessionDate;
-
-        // function isCurrentTimeBetween(startTime, endTime, urlStartTime, urlEndTime) {
-        //     // Convert time strings to 24-hour format
-        //     startTime = convertTo24HourFormat(startTime);
-        //     endTime = convertTo24HourFormat(endTime);
-        //     urlStartTime = convertTo24HourFormat(urlStartTime);
-        //     urlEndTime = convertTo24HourFormat(urlEndTime);
-
-        //     // Convert time strings to Date objects with today's date
-        //     const currentDate = new Date();
-        //     const start = new Date(`${currentDate.toDateString()} ${startTime}`);
-        //     const end = new Date(`${currentDate.toDateString()} ${endTime}`);
-        //     const urlStart = new Date(`${currentDate.toDateString()} ${urlStartTime}`);
-        //     const urlEnd = new Date(`${currentDate.toDateString()} ${urlEndTime}`);
-
-        //     // Get the current time as milliseconds since epoch
-        //     const currentTime = currentDate.getTime();
-
-        //     // Get the start and end times as milliseconds since epoch
-        //     const startMs = start.getTime();
-        //     const endMs = end.getTime();
-        //     const urlStartMs = urlStart.getTime();
-        //     const urlEndMs = urlEnd.getTime();
-
-        //     // Check if the current time is between the start and end times
-        //     const isBetween = currentTime >= startMs && currentTime <= endMs;
-
-        //     // Check if the URL start and end times are between the start and end times
-        //     const urlIsBetween = urlStartMs >= startMs && urlEndMs <= endMs;
-
-        //     // Return true if both conditions are met
-        //     return isBetween && urlIsBetween;
-        // };
-
-        // function convertTo24HourFormat(timeString) {
-        //     // Split the time string into hours and minutes
-        //     const [time, period] = timeString.split(/(?<=\d)(AM|PM)/i);
-
-        //     // Split the hours and minutes
-        //     const [hours, minutes] = time.split(':').map(Number);
-
-        //     // Convert hours to 24-hour format
-        //     let newHours = hours;
-        //     if (period.toUpperCase() === 'PM' && hours !== 12) {
-        //         newHours += 12;
-        //     } else if (period.toUpperCase() === 'AM' && hours === 12) {
-        //         newHours = 0;
-        //     }
-
-        //     // Pad single digit hours and minutes with leading zeros
-        //     const paddedHours = newHours.toString().padStart(2, '0');
-        //     const paddedMinutes = minutes.toString().padStart(2, '0');
-
-        //     // Return the time string in 24-hour format
-        //     return `${paddedHours}:${paddedMinutes}`;
-        // };
 
         function isCurrentTimeBetween(startTime, endTime, urlStartTime, urlEndTime) {
             // Convert time strings to 24-hour format
@@ -544,133 +486,67 @@ io.sockets.on('connection', function (socket) {
             return `${paddedHours}:${paddedMinutes}`;
         }
 
-
-
-
-        // const dbSessions = await Session.findOne({ where: { deleted_at: null, session_id: user.sessionId, classes_id: user.classesId } });
-        // const dbUser = await User.findOne({ where: { deleted_at: null, user_id: user.userId } });
-        // const dbUserSession = await UserSession.findOne({ where: { deleted_at: null, session_id: dbSessions.dataValues.id, user_id: dbUser.dataValues.id } });
-        // return {
-        //     session: dbSessions.dataValues,
-        //     user: dbUser.dataValues,
-        //     userSession: dbUserSession.dataValues,
-
-        //         SELECT *
-        //             FROM public."Session" AS s
-        // LEFT JOIN public."UserSession" AS us ON s.id = us.session_id
-        // LEFT JOIN public."User" AS u ON u.id = us.user_id
-        // WHERE s.deleted_at IS NULL AND s.session_id = '4896a8a8-b791-4c4a-b059-29b2880a5352' 
-        // AND s.classes_id = 'caa403e3-1e66-4d79-8f69-7b3efe2ddccd';
-
-
-        // SELECT sessions.*, users.*, user_sessions.*
-        //             FROM sessions
-        // JOIN user_sessions ON sessions.id = user_sessions.session_id
-        // JOIN users ON users.id = user_sessions.user_id
-        // WHERE sessions.deleted_at IS NULL
-        //   AND sessions.session_id = <user.sessionId>
-        //             AND sessions.classes_id = <user.classesId>
-        //                 AND users.deleted_at IS NULL
-        //                 AND users.user_id = <user.userId>
-        //                     AND user_sessions.deleted_at IS NULL;
-        //                     // };
-
-        // async function getSessions(user) {
-        //     try {
-        //         const result = await Session.findOne({
-        //             where: {
-        //                 deleted_at: null,
-        //                 session_id: user.sessionId,
-        //                 classes_id: user.classesId
-        //             },
-        //             include: [
-        //                 {
-        //                     model: User,
-        //                     where: {
-        //                         deleted_at: null,
-        //                         user_id: user.userId
-        //                     },
-        //                     required: true
-        //                 },
-        //                 {
-        //                     model: UserSession,
-        //                     where: {
-        //                         deleted_at: null,
-        //                     },
-        //                     required: true,
-        //                     include: [
-        //                         {
-        //                             model: User,
-        //                             where: {
-        //                                 deleted_at: null,
-        //                                 user_id: user.userId
-        //                             },
-        //                             required: true
-        //                         }
-        //                     ]
-        //                 }
-        //             ]
-        //         });
-
-        //         if (!result) {
-        //             throw new Error('Session not found');
-        //         }
-
-        //         return {
-        //             session: result.dataValues,
-        //             user: result.User.dataValues,
-        //             userSession: result.UserSessions[0].dataValues,
-        //         };
-        //     } catch (error) {
-        //         console.error(error);
-        //         throw new Error('Server error');
-        //     }
-        // }
-
-//         SELECT 
-// FROM sessions
-// JOIN user_sessions ON sessions.id = user_sessions.session_id
-// JOIN users ON users.id = user_sessions.user_id
-// WHERE sessions.deleted_at IS NULL
-//   AND sessions.session_id = '4896a8a8-b791-4c4a-b059-29b2880a5352'
-//   AND sessions.classes_id = 'caa403e3-1e66-4d79-8f69-7b3efe2ddccd'
-//   AND users.deleted_at IS NULL
-//   AND users.user_id ='4896a8a8-b791-4c4a-b059-29b2880a5356'
-//   AND user_sessions.deleted_at IS NULL;
-
         async function getSessions(user) {
             try {
-                const sessions = await Session.findAll({ where: { deleted_at: null, session_id: user.sessionId, classes_id: user.classesId } });
-                const sessionDataValues = sessions.map(session => session.dataValues);
-                return sessionDataValues;
+                const sessions = await Session.findOne({
+                    attributes: ['id', 'sessionDate', 'start_time', 'end_time'], // Specify the fields you want to retrieve
+                    where: { deleted_at: null, session_id: user.sessionId, classes_id: user.classesId },
+                });
+                const sessionId = await sessions?.dataValues?.id;
+                if(sessionId === undefined ) {
+                    callback('session not exist')
+                } else {
+                const userSessions = await UserSession.findOne({
+                    attributes: ['id', 'session_id', 'user_id'],
+                    where: { deleted_at: null, session_id: sessionId },
+                    include: {
+                        model: User,
+                        attributes: ['id', 'user_id'],
+                        where: { deleted_at: null, user_id: user.userId },
+                        required: true, // This makes it a left join
+                    },
+                });
+
+
+                const sessionData = sessions?.dataValues;
+                const userSessionsData = {
+                    id: userSessions?.dataValues?.id,
+                    session_id: userSessions?.dataValues?.session_id,
+                    user_id: userSessions?.dataValues?.user_id,
+                };
+                const sessionUsers = userSessions?.dataValues?.User?.dataValues;
+
+                return {
+                    sessionData,
+                    userSessionsData,
+                    sessionUsers
+                };
+            };
             } catch (error) {
                 console.error(error);
                 callback('Server error');
             }
         };
 
-
-
         const session = await getSessions(user);
-        // console.log('session values from url')
-        // console.log(user)
-        console.log('session values from db')
-        console.log(session)
+
+        console.log('+++++++++++ db query result ++++++++++');
+        console.log(session);
+
+        if( typeof session !== 'undefined' ) {
+
+        const isSessionUser = session?.sessionData?.id === session?.userSessionsData?.session_id && session?.userSessionsData?.user_id === session?.sessionUsers?.id;
 
 
+        const isDateMatched = session?.sessionData?.sessionDate === user?.sessionDate;
+        const isBetween = isCurrentTimeBetween(session?.sessionData?.start_time, session?.sessionData?.end_time, user?.startTime, user?.endTime);
 
-        const isBetween = true;
-        // isCurrentTimeBetween(session.startTime, session.endTime, user.startTime, user.endTime);
         // checking session data with today
         if (!isDateMatched || !isBetween) {
             callback('incorrect session timeing');
         } else {
 
-            if (true) {
-                // console.log('========exist=========')
-                // const foundedUser = sessionDataValue.users.find(u => u.id === user.userId);
-                // console.log('user role:', foundedUser);
-
+            if (isSessionUser) {
 
                 content = escapeAllContentStrings(content);
                 //console.log("[" + socket.id + "] join ", content);
@@ -1223,10 +1099,12 @@ io.sockets.on('connection', function (socket) {
 
                 callback()
             } else {
-                console.log('========not exist=========')
                 callback('invalid user');
             }// end of user validation
         } //end of checking today data
+    } else {
+        callback("invalid session attempt");
+    }
     });
 
     function isModerator() {
