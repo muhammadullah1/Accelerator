@@ -17,6 +17,7 @@ require('dotenv').config();
 const bodyParser = require('body-parser');
 const Joi = require('joi');
 const dbConfig = require('./config/databaseConfig.js');
+const { Sequelize } = require('sequelize');
 const app = express();
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -180,17 +181,15 @@ var url3dObjs = {};
 var storedYoutubePlays = {};
 
 setTimeout(function () {
-    console.log("--------------------------------------");
     if (config["mcuConfig"]["isMaster"]) {
         console.log("WhiteBoard MAIN is up and running! YEAH :D");
     } else {
         console.log("WhiteBoard Loadbalancer is up and running! YEAH :D");
     }
-    console.log("--------------------------------------");
 }, 200);
 
 /*************************/
-/*** CRUD ROOM OR SESSION REQUEST API ROUTE ***/
+/*** CREATE SESSION POST API ROUTE ***/
 /*************************/
 
 io.sockets.on('connection', async function (socket) {
@@ -263,13 +262,8 @@ io.sockets.on('connection', async function (socket) {
                 socket.broadcast.emit('getAllRooms', cleanRooms);
                 socket.emit('getAllRooms', cleanRooms);
                 saveAllRoomAttr();
-                console.log("------------------------vlaues----------------");
-                // console.log(value);
                 const session = await Session.create({ ...value, formattedRoomName });
                 const dbUsers = await User.bulkCreate(value.users);
-                console.log(session)
-                console.log('--------between-----------')
-                console.log(users)
                 // Create the association records
                 await Promise.all(
                     dbUsers.map((user) => session.addUser(user, { through: { sessionId: session.dataValues.id, userId: user.id } }))
@@ -280,7 +274,7 @@ io.sockets.on('connection', async function (socket) {
             }
         } catch (error) {
             console.error(error);
-            throw new Error('Server error');
+            res.status(409).send(error.errors[0].message);
         }
     });
 });
@@ -293,9 +287,9 @@ app.get('/session', async (req, res) => {
     try {
         const sessions = await Session.findAll({
             include: [
-                { 
+                {
                     model: User,
-                    through: UserSession 
+                    through: UserSession
                 }
             ]
         });
@@ -306,11 +300,8 @@ app.get('/session', async (req, res) => {
     }
 });
 
-
-
-
 /*************************/
-/*** GET data for chekcing teacher ***/
+/***chekcing  user role***/
 /*************************/
 app.post('/checkrole/:userId', async (req, res) => {
     try {
@@ -326,7 +317,10 @@ app.post('/checkrole/:userId', async (req, res) => {
     }
 });
 
-  
+
+/*************************/
+/*** update session and users ***/
+/*************************/
 
 
 
@@ -432,84 +426,127 @@ io.sockets.on('connection', function (socket) {
 
     socket.on('join', async function (content, callback) {
         const user = content.userData;
-        const today = new Date().toISOString().slice(0, 10);
-        const isDateMatched = today === user.sessionDate
 
-        // compareing timeing
-        function isCurrentTimeBetween(startTime, endTime) {
-            // Get the current time
-            var now = new Date();
-            var currentHours = now.getHours();
-            var currentMinutes = now.getMinutes();
+        function isCurrentTimeBetween(startTime, endTime, urlStartTime, urlEndTime) {
+            // Convert time strings to 24-hour format
+            startTime = convertTo24HourFormat(startTime);
+            endTime = convertTo24HourFormat(endTime);
+            urlStartTime = convertTo24HourFormat(urlStartTime);
+            urlEndTime = convertTo24HourFormat(urlEndTime);
 
-            // Convert current time to minutes since midnight
-            var currentMinutesSinceMidnight = currentHours * 60 + currentMinutes;
+            // Convert time strings to Date objects with today's date
+            const currentDate = new Date();
+            const start = new Date(`${currentDate.toDateString()} ${startTime}`);
+            const end = new Date(`${currentDate.toDateString()} ${endTime}`);
+            const urlStart = new Date(`${currentDate.toDateString()} ${urlStartTime}`);
+            const urlEnd = new Date(`${currentDate.toDateString()} ${urlEndTime}`);
 
-            // Convert start and end times to 24-hour format
-            var startParts = startTime.split(":");
-            var startHours = parseInt(startParts[0]);
-            var startMinutes = parseInt(startParts[1]);
-            if (startTime.endsWith('PM') && startHours !== 12) {
-                startHours += 12;
-            }
-            var startMinutesSinceMidnight = startHours * 60 + startMinutes;
+            // Get the current time as milliseconds since epoch
+            const currentTime = currentDate.getTime();
 
-            var endParts = endTime.split(":");
-            var endHours = parseInt(endParts[0]);
-            var endMinutes = parseInt(endParts[1]);
-            if (endTime.endsWith('PM') && endHours !== 12) {
-                endHours += 12;
-            }
-            var endMinutesSinceMidnight = endHours * 60 + endMinutes;
+            // Get the start and end times as milliseconds since epoch
+            const startMs = start.getTime();
+            const endMs = end.getTime();
+            const urlStartMs = urlStart.getTime();
+            const urlEndMs = urlEnd.getTime();
 
-            // Check if current time is between start and end time
-            if (startMinutesSinceMidnight <= currentMinutesSinceMidnight && currentMinutesSinceMidnight <= endMinutesSinceMidnight) {
-                return true;
-            } else {
-                return false;
-            }
+            // Check if the current time is between the start and end times
+            const isBetween = currentTime >= startMs && currentTime <= endMs;
+
+            // Check if the URL start and end times are between the start and end times
+            const urlIsBetween = urlStartMs >= startMs && urlEndMs <= endMs;
+
+            // Return true if both conditions are met
+            return isBetween && urlIsBetween;
         }
-        console.log(user);
 
-        console.log('-------session date format ------------')
-        console.log('timeing', isCurrentTimeBetween(user.startTime, user.endTime));
-        console.log('dateing', isDateMatched);
+        function convertTo24HourFormat(timeString) {
+            // Remove any spaces from the time string
+            timeString = timeString.replace(/\s+/g, '');
+
+            // Split the time string into hours and minutes
+            const [time, period] = timeString.split(/(?<=\d)(AM|PM)/i);
+
+            // Split the hours and minutes
+            const [hours, minutes] = time.split(':').map(Number);
+
+            // Convert hours to 24-hour format
+            let newHours = hours;
+            if (period.toUpperCase() === 'PM' && hours !== 12) {
+                newHours += 12;
+            } else if (period.toUpperCase() === 'AM' && hours === 12) {
+                newHours = 0;
+            }
+
+            // Pad single digit hours and minutes with leading zeros
+            const paddedHours = newHours.toString().padStart(2, '0');
+            const paddedMinutes = minutes.toString().padStart(2, '0');
+
+            // Return the time string in 24-hour format
+            return `${paddedHours}:${paddedMinutes}`;
+        }
+
+        async function getSessions(user) {
+            try {
+                const sessions = await Session.findOne({
+                    attributes: ['id', 'sessionDate', 'start_time', 'end_time'], // Specify the fields you want to retrieve
+                    where: { deleted_at: null, session_id: user.sessionId, classes_id: user.classesId },
+                });
+                const sessionId = await sessions?.dataValues?.id;
+                if(sessionId === undefined ) {
+                    callback('session not exist')
+                } else {
+                const userSessions = await UserSession.findOne({
+                    attributes: ['id', 'session_id', 'user_id'],
+                    where: { deleted_at: null, session_id: sessionId },
+                    include: {
+                        model: User,
+                        attributes: ['id', 'user_id'],
+                        where: { deleted_at: null, user_id: user.userId },
+                        required: true, // This makes it a left join
+                    },
+                });
+
+
+                const sessionData = sessions?.dataValues;
+                const userSessionsData = {
+                    id: userSessions?.dataValues?.id,
+                    session_id: userSessions?.dataValues?.session_id,
+                    user_id: userSessions?.dataValues?.user_id,
+                };
+                const sessionUsers = userSessions?.dataValues?.User?.dataValues;
+
+                return {
+                    sessionData,
+                    userSessionsData,
+                    sessionUsers
+                };
+            };
+            } catch (error) {
+                console.error(error);
+                callback('Server error');
+            }
+        };
+
+        const session = await getSessions(user);
+
+        console.log('+++++++++++ db query result ++++++++++');
+        console.log(session);
+
+        if( typeof session !== 'undefined' ) {
+
+        const isSessionUser = session?.sessionData?.id === session?.userSessionsData?.session_id && session?.userSessionsData?.user_id === session?.sessionUsers?.id;
+
+
+        const isDateMatched = session?.sessionData?.sessionDate === user?.sessionDate;
+        const isBetween = isCurrentTimeBetween(session?.sessionData?.start_time, session?.sessionData?.end_time, user?.startTime, user?.endTime);
 
         // checking session data with today
-        if (!isDateMatched || !isCurrentTimeBetween(user.startTime, user.endTime)) {
+        if (!isDateMatched || !isBetween) {
             callback('incorrect session timeing');
         } else {
 
-            async function getSessions() {
-                try {
-                    const sessions = await Session.findAll({ where: { deleted_at: null, session_id: user.sessionId, classes_id: user.classesId } });
-                    const sessionDataValues = sessions.map(session => session.dataValues);
-                    return sessionDataValues;
-                } catch (error) {
-                    console.error(error);
-                    callback('Server error');
-                }
-            };
-
-            const session = await getSessions();
-            console.log(session)
-            // const sessionDataValue = session && session.map(session => {
-            //     const parsedUsers = session.users.map(user => JSON.parse(user));
-            //     return { ...session, users: parsedUsers };
-            // })[0];
-
-            // console.log('-------user data from db------------')
-            // console.log(sessionDataValue);
-
-            // // user validation
-            // const userExists = sessionDataValue.users.some(u => u.id === user.userId)
-            // console.log('user exists: ', userExists);
-
-            if (true) {
-                // console.log('========exist=========')
-                // const foundedUser = sessionDataValue.users.find(u => u.id === user.userId);
-                // console.log('user role:', foundedUser);
-
+            if (isSessionUser) {
 
                 content = escapeAllContentStrings(content);
                 //console.log("[" + socket.id + "] join ", content);
@@ -1062,10 +1099,12 @@ io.sockets.on('connection', function (socket) {
 
                 callback()
             } else {
-                console.log('========not exist=========')
                 callback('invalid user');
             }// end of user validation
         } //end of checking today data
+    } else {
+        callback("invalid session attempt");
+    }
     });
 
     function isModerator() {
@@ -1674,3 +1713,5 @@ function escapeAllContentStrings(content, cnt) {
     }
     return content;
 }
+
+//docker 1.docker build -t acc . and to run 2.run docker run -p 8080:8080 acc

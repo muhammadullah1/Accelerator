@@ -10,22 +10,6 @@ const UserSession = sequelize.define('UserSession', {
         defaultValue: Sequelize.UUIDV4,
         primaryKey: true
     },
-    userId: {
-        type: Sequelize.UUID,
-        allowNull: false,
-        references: {
-            model: 'User',
-            key: 'id'
-        },
-    },
-    sessionId: {
-        type: Sequelize.UUID,
-        allowNull: false,
-        references: {
-            model: 'Session',
-            key: 'id'
-        },
-    },
     createdAt: {
         type: Sequelize.DATE,
         allowNull: false,
@@ -48,6 +32,8 @@ const UserSession = sequelize.define('UserSession', {
 // Define the associations between the models
 Session.belongsToMany(User, { through: UserSession });
 User.belongsToMany(Session, { through: UserSession });
+UserSession.belongsTo(User, { foreignKey: 'userId' });
+UserSession.belongsTo(Session, { foreignKey: 'sessionId' });
 
 // create all tables in the database
 sequelize.sync()
