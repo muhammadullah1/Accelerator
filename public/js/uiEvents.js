@@ -67,7 +67,8 @@ $(function () { //Document ready
 				});
 
 				setTimeout(() => {
-					const roomExists = allrooms.find(room => room.roomName);
+					const roomExists = allrooms.find(room => room.roomName === roomName);
+
 					if (roomExists) {
 						$("#directRoomName").text(decodeURIComponent(roomName));
 						$('#connectModal').modal({ backdrop: 'static', keyboard: false });

@@ -274,7 +274,7 @@ io.sockets.on('connection', async function (socket) {
             }
         } catch (error) {
             console.error(error);
-            throw new Error('Server error');
+            res.status(409).send(error.errors[0].message);
         }
     });
 });
