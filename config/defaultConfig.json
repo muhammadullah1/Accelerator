@@ -1,0 +1,36 @@
+{
+    "http": {
+        "port": 8080
+    },
+    "mcuConfig": {
+        "webRtcConfig": {
+            "iceServers": [
+                {
+                    "urls": "stun:stun.l.google.com:19302"
+                }
+            ],
+            "preferH264Codec": false
+        },
+        "loadBalancerAuthKey": "08522163784961168",
+        "isMaster": true,
+        "masterURL": "https://yourAcceleratorURL.tl",
+        "enableLocalMCU": true,
+        "enableGlobalVideoProcessing": false,
+        "processingFPS": 20,
+        "processingBitrate": 600
+    },
+    "accConfig": {
+        "etherpadUrl": "",
+        "deleteUnusedRoomsAfterDays": 0,
+        "screenshareConfig": {
+            "maxFPS": 20,
+            "maxResolution": "720p"
+        },
+        "webcamConfig": {
+            "maxFPS": 20,
+            "maxResolution": "480p"
+        },
+        "userCntVideoShareLimit": 6,
+        "enableClientVideoProcessing": false
+    }
+}
