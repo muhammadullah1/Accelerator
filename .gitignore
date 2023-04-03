@@ -110,6 +110,6 @@ dist
 /public/singlefiles
 /public/3dObjs
 /node_modules
-/config
+# /config
 /public/js/clientConfig.js
 .idea/

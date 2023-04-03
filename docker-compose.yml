@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_PASSWORD: postgrespw
     ports:
-      - 5432:32769
+      - 5432:5432
     volumes:
       - data:/var/lib/postgresql/data
 
@@ -16,10 +16,10 @@ services:
     environment:
       - DATABASE_TYPE=postgres
       - DATABASE_HOST=postgres
-      - DATABASE_PORT=32769
+      - DATABASE_PORT=5432
       - DATABASE_USERNAME=postgres
       - DATABASE_PASSWORD=postgrespw
-      - DATABASE_NAME=whiteboard_db1
+      - DATABASE_NAME=whiteboard
       - DATABASE_SYNCHRONIZE=true
       - DATABASE_MAX_CONNECTIONS=100
     ports:
@@ -28,3 +28,5 @@ services:
 
 volumes:
   data:
+
+    # https://789311952656.signin.aws.amazon.com/console
