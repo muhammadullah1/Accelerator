@@ -25,15 +25,15 @@ app.use(bodyParser.json());
 app.use(bodyParser.raw());
 var fs = require("fs-extra");
 const Session = require('./models/session.model');
-const User = require('./models/user.model');
-const UserSession = require('./models/userSession.model');
+// const User = require('./models/user.model');
+// const UserSession = require('./models/userSession.model');
 
 const { getSessions } = require('./services/session.service');
 
 //**********************/
 // cors error 
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1:8080');
+    res.setHeader('Access-Control-Allow-Origin', 'http://3.108.191.210:8080');
     next();
 });
 
@@ -63,7 +63,7 @@ console.log('---------------------------------');
 
 // To synchronize all the models with the database
 
-dbConfig.sync()
+dbConfig.sync({force : true})
     .then(() => {
         console.log('All models were synchronized successfully.');
     })
@@ -194,7 +194,7 @@ setTimeout(function () {
 
 io.sockets.on('connection', async function (socket) {
     app.post('/session', async (req, res) => {
-        const { sessionName, roomPassword = '', creater, users } = req.body;
+        const { sessionName, roomPassword = '', creater } = req.body;
 
         // Define Joi validation schema
         const schema = Joi.object({
@@ -202,16 +202,16 @@ io.sockets.on('connection', async function (socket) {
             sessionId: Joi.string().required(),
             classesId: Joi.string().required(),
             creater: Joi.string().required(),
-            teacherId: Joi.string().optional(),
+            teacherId: Joi.string().required(),
             teacherName: Joi.string().optional(),
-            users: Joi.array().items(Joi.object({
-                name: Joi.string().required(),
-                userId: Joi.string().uuid().required(),
-                role: Joi.string().valid('student', 'teacher').required()
-            })).min(1).required(),
-            sessionDate: Joi.string().required(),
-            startTime: Joi.string().required(),
-            endTime: Joi.string().required(),
+            // users: Joi.array().items(Joi.object({
+            //     name: Joi.string().required(),
+            //     userId: Joi.string().uuid().required(),
+            //     role: Joi.string().valid('student', 'teacher').required()
+            // })).min(1).required(),
+            // sessionDate: Joi.string().required(),
+            // startTime: Joi.string().required(),
+            // endTime: Joi.string().required(),
             deletedBy: Joi.string().optional()
         });
 
@@ -231,7 +231,7 @@ io.sockets.on('connection', async function (socket) {
                 "roomName": formattedRoomName,
                 "roomPassword": '',
                 "creator": creater,
-                "users": users,
+                "users": {},
                 "permanent": true
             }, function (err) {
                 if (err) {
@@ -251,7 +251,7 @@ io.sockets.on('connection', async function (socket) {
             } else {
                 allRoomAttr[formattedRoomName] = {
                     "moderator": null,
-                    "users": req.body.users,
+                    "users": {},
                     "roomName": formattedRoomName,
                     "roomPassword": roomPassword,
                     "creator": creater,
@@ -263,11 +263,11 @@ io.sockets.on('connection', async function (socket) {
                 socket.emit('getAllRooms', cleanRooms);
                 saveAllRoomAttr();
                 const session = await Session.create({ ...value, formattedRoomName });
-                const dbUsers = await User.bulkCreate(value.users);
+                // const dbUsers = await User.bulkCreate(value.users);
                 // Create the association records
-                await Promise.all(
-                    dbUsers.map((user) => session.addUser(user, { through: { sessionId: session.dataValues.id, userId: user.id } }))
-                );
+                // await Promise.all(
+                //     dbUsers.map((user) => session.addUser(user, { through: { sessionId: session.dataValues.id, userId: user.id } }))
+                // );
                 res.status(201).send({
                     message: "Room created successfully"
                 });
@@ -285,14 +285,7 @@ io.sockets.on('connection', async function (socket) {
 
 app.get('/session', async (req, res) => {
     try {
-        const sessions = await Session.findAll({
-            include: [
-                {
-                    model: User,
-                    through: UserSession
-                }
-            ]
-        });
+        const sessions = await Session.findAll();
         res.status(200).json(sessions);
     } catch (error) {
         console.error(error);
@@ -303,14 +296,16 @@ app.get('/session', async (req, res) => {
 /*************************/
 /***chekcing  user role***/
 /*************************/
-app.post('/checkrole/:userId', async (req, res) => {
+app.post('/checkrole/:Id', async (req, res) => {
     try {
-        const user = await User.findOne({ where: { userId: req.params.userId } });
+        const user = await Session.findOne({ where: { teacherId: req.params.Id } });
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return false;
+        } else {
+            res.send(true)
         }
-        const role = user.role;
-        res.status(200).json({ role });
+        // const role = user.role;
+        // res.status(200).json({ role });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
@@ -427,101 +422,96 @@ io.sockets.on('connection', function (socket) {
     socket.on('join', async function (content, callback) {
         const user = content.userData;
 
-        function isCurrentTimeBetween(startTime, endTime, urlStartTime, urlEndTime) {
-            // Convert time strings to 24-hour format
-            startTime = convertTo24HourFormat(startTime);
-            endTime = convertTo24HourFormat(endTime);
-            urlStartTime = convertTo24HourFormat(urlStartTime);
-            urlEndTime = convertTo24HourFormat(urlEndTime);
+        // function isCurrentTimeBetween(startTime, endTime, urlStartTime, urlEndTime) {
+        //     // Convert time strings to 24-hour format
+        //     startTime = convertTo24HourFormat(startTime);
+        //     endTime = convertTo24HourFormat(endTime);
+        //     urlStartTime = convertTo24HourFormat(urlStartTime);
+        //     urlEndTime = convertTo24HourFormat(urlEndTime);
 
-            // Convert time strings to Date objects with today's date
-            const currentDate = new Date();
-            const start = new Date(`${currentDate.toDateString()} ${startTime}`);
-            const end = new Date(`${currentDate.toDateString()} ${endTime}`);
-            const urlStart = new Date(`${currentDate.toDateString()} ${urlStartTime}`);
-            const urlEnd = new Date(`${currentDate.toDateString()} ${urlEndTime}`);
+        //     // Convert time strings to Date objects with today's date
+        //     const currentDate = new Date();
+        //     const start = new Date(`${currentDate.toDateString()} ${startTime}`);
+        //     const end = new Date(`${currentDate.toDateString()} ${endTime}`);
+        //     const urlStart = new Date(`${currentDate.toDateString()} ${urlStartTime}`);
+        //     const urlEnd = new Date(`${currentDate.toDateString()} ${urlEndTime}`);
 
-            // Get the current time as milliseconds since epoch
-            const currentTime = currentDate.getTime();
+        //     // Get the current time as milliseconds since epoch
+        //     const currentTime = currentDate.getTime();
 
-            // Get the start and end times as milliseconds since epoch
-            const startMs = start.getTime();
-            const endMs = end.getTime();
-            const urlStartMs = urlStart.getTime();
-            const urlEndMs = urlEnd.getTime();
+        //     // Get the start and end times as milliseconds since epoch
+        //     const startMs = start.getTime();
+        //     const endMs = end.getTime();
+        //     const urlStartMs = urlStart.getTime();
+        //     const urlEndMs = urlEnd.getTime();
 
-            // Check if the current time is between the start and end times
-            const isBetween = currentTime >= startMs && currentTime <= endMs;
+        //     // Check if the current time is between the start and end times
+        //     const isBetween = currentTime >= startMs && currentTime <= endMs;
 
-            // Check if the URL start and end times are between the start and end times
-            const urlIsBetween = urlStartMs >= startMs && urlEndMs <= endMs;
+        //     // Check if the URL start and end times are between the start and end times
+        //     const urlIsBetween = urlStartMs >= startMs && urlEndMs <= endMs;
 
-            // Return true if both conditions are met
-            return isBetween && urlIsBetween;
-        }
+        //     // Return true if both conditions are met
+        //     return isBetween && urlIsBetween;
+        // }
 
-        function convertTo24HourFormat(timeString) {
-            // Remove any spaces from the time string
-            timeString = timeString.replace(/\s+/g, '');
+        // function convertTo24HourFormat(timeString) {
+        //     // Remove any spaces from the time string
+        //     timeString = timeString.replace(/\s+/g, '');
 
-            // Split the time string into hours and minutes
-            const [time, period] = timeString.split(/(?<=\d)(AM|PM)/i);
+        //     // Split the time string into hours and minutes
+        //     const [time, period] = timeString.split(/(?<=\d)(AM|PM)/i);
 
-            // Split the hours and minutes
-            const [hours, minutes] = time.split(':').map(Number);
+        //     // Split the hours and minutes
+        //     const [hours, minutes] = time.split(':').map(Number);
 
-            // Convert hours to 24-hour format
-            let newHours = hours;
-            if (period.toUpperCase() === 'PM' && hours !== 12) {
-                newHours += 12;
-            } else if (period.toUpperCase() === 'AM' && hours === 12) {
-                newHours = 0;
-            }
+        //     // Convert hours to 24-hour format
+        //     let newHours = hours;
+        //     if (period.toUpperCase() === 'PM' && hours !== 12) {
+        //         newHours += 12;
+        //     } else if (period.toUpperCase() === 'AM' && hours === 12) {
+        //         newHours = 0;
+        //     }
 
-            // Pad single digit hours and minutes with leading zeros
-            const paddedHours = newHours.toString().padStart(2, '0');
-            const paddedMinutes = minutes.toString().padStart(2, '0');
+        //     // Pad single digit hours and minutes with leading zeros
+        //     const paddedHours = newHours.toString().padStart(2, '0');
+        //     const paddedMinutes = minutes.toString().padStart(2, '0');
 
-            // Return the time string in 24-hour format
-            return `${paddedHours}:${paddedMinutes}`;
-        }
+        //     // Return the time string in 24-hour format
+        //     return `${paddedHours}:${paddedMinutes}`;
+        // }
 
         async function getSessions(user) {
             try {
                 const sessions = await Session.findOne({
-                    attributes: ['id', 'sessionDate', 'start_time', 'end_time'], // Specify the fields you want to retrieve
                     where: { deleted_at: null, session_id: user.sessionId, classes_id: user.classesId },
                 });
-                const sessionId = await sessions?.dataValues?.id;
-                if(sessionId === undefined ) {
-                    callback('session not exist')
-                } else {
-                const userSessions = await UserSession.findOne({
-                    attributes: ['id', 'session_id', 'user_id'],
-                    where: { deleted_at: null, session_id: sessionId },
-                    include: {
-                        model: User,
-                        attributes: ['id', 'user_id'],
-                        where: { deleted_at: null, user_id: user.userId },
-                        required: true, // This makes it a left join
-                    },
-                });
+                // const sessionId = await sessions?.dataValues?.id;
+                // if(sessionId === undefined ) {
+                //     callback('session not exist')
+                // } else {
+                // const userSessions = await UserSession.findOne({
+                //     attributes: ['id', 'session_id', 'user_id'],
+                //     where: { deleted_at: null, session_id: sessionId },
+                //     include: {
+                //         model: User,
+                //         attributes: ['id', 'user_id'],
+                //         where: { deleted_at: null, user_id: user.userId },
+                //         required: true, // This makes it a left join
+                //     },
+                // });
 
 
-                const sessionData = sessions?.dataValues;
-                const userSessionsData = {
-                    id: userSessions?.dataValues?.id,
-                    session_id: userSessions?.dataValues?.session_id,
-                    user_id: userSessions?.dataValues?.user_id,
-                };
-                const sessionUsers = userSessions?.dataValues?.User?.dataValues;
+                // const sessionData = sessions?.dataValues;
+                // const userSessionsData = {
+                //     id: userSessions?.dataValues?.id,
+                //     session_id: userSessions?.dataValues?.session_id,
+                //     user_id: userSessions?.dataValues?.user_id,
+                // };
+                // const sessionUsers = userSessions?.dataValues?.User?.dataValues;
 
-                return {
-                    sessionData,
-                    userSessionsData,
-                    sessionUsers
-                };
-            };
+                return sessions?.dataValues
+                // };
             } catch (error) {
                 console.error(error);
                 callback('Server error');
@@ -533,581 +523,581 @@ io.sockets.on('connection', function (socket) {
         console.log('+++++++++++ db query result ++++++++++');
         console.log(session);
 
-        if( typeof session !== 'undefined' ) {
+        if (typeof session !== 'undefined') {
 
-        const isSessionUser = session?.sessionData?.id === session?.userSessionsData?.session_id && session?.userSessionsData?.user_id === session?.sessionUsers?.id;
+            // const isSessionUser = session?.sessionData?.id === session?.userSessionsData?.session_id && session?.userSessionsData?.user_id === session?.sessionUsers?.id;
 
 
-        // const isDateMatched = session?.sessionData?.sessionDate === user?.sessionDate;
-        // const isBetween = isCurrentTimeBetween(session?.sessionData?.start_time, session?.sessionData?.end_time, user?.startTime, user?.endTime);
+            // const isDateMatched = session?.sessionData?.sessionDate === user?.sessionDate;
+            // const isBetween = isCurrentTimeBetween(session?.sessionData?.start_time, session?.sessionData?.end_time, user?.startTime, user?.endTime);
 
-        // console.log('+++++++++++ datea machted ++++++++++', isDateMatched);
-        // console.log('+++++++++++ time matched ++++++++++', isBetween);
+            // console.log('+++++++++++ datea machted ++++++++++', isDateMatched);
+            // console.log('+++++++++++ time matched ++++++++++', isBetween);
 
-        // checking session data with today
-        // if (!isDateMatched || !isBetween) {
-        //     callback('incorrect session timeing');
-        // } else {
+            // checking session data with today
+            // if (!isDateMatched || !isBetween) {
+            //     callback('incorrect session timeing');
+            // } else {
 
-            if (isSessionUser) {
+            // if (isSessionUser) {
 
-                content = escapeAllContentStrings(content);
-                //console.log("[" + socket.id + "] join ", content);
-                roomName = content.roomName ? content.roomName.trim() : "";
-                var roomPassword = content.roomPassword;
+            content = escapeAllContentStrings(content);
+            //console.log("[" + socket.id + "] join ", content);
+            roomName = content.roomName ? content.roomName.trim() : "";
+            var roomPassword = content.roomPassword;
 
-                if (!allRoomAttr[roomName]) {
-                    return callback("Not a vaild roomname!");
+            if (!allRoomAttr[roomName]) {
+                return callback("Not a vaild roomname!");
+            }
+            if (allRoomAttr[roomName]["roomPassword"] != "" && allRoomAttr[roomName]["roomPassword"] != roomPassword) {
+                return callback("Wrong room password!");
+            }
+
+            userdata["username"] = content.username;
+            userdata["socketId"] = socket.id;
+            userdata["color"] = content.color;
+
+            allRoomAttr[roomName]["users"] = allRoomAttr[roomName]["users"] ? allRoomAttr[roomName]["users"] : {};
+            allRoomAttr[roomName]["users"][socket.id] = userdata;
+            allRoomAttr[roomName]["lastVisit"] = +new Date();
+
+            socket.join(roomName);
+
+            var cleanRooms = getAllRoomsWithoutPasswords();
+            socket.broadcast.emit('getAllRooms', cleanRooms);
+            socket.emit('getAllRooms', cleanRooms);
+
+            if (!currentLoadedTab[roomName]) {
+                currentLoadedTab[roomName] = "#homeScreen";
+            }
+            //Send allPraesis in this room
+            socket.emit('loadPraesis', allPraesis[roomName]);
+            //Send all singleFiles in this room
+            socket.emit('sigleFilesTable', allSingleFiles[roomName]);
+
+            if (all3DObjs[roomName])
+                socket.emit('load3DObjs', all3DObjs[roomName]);
+
+            if (url3dObjs[roomName])
+                socket.emit('show3DObj', url3dObjs[roomName]);
+
+            var clients = io.sockets.adapter.rooms[roomName].sockets;
+
+            for (var i in clients) {
+                socket.emit('addPeer', allUserAttr[i]);
+            }
+
+            if (currentLoadedTab[roomName]) {
+                var items = userPItems[roomName] ? userPItems[roomName][currentLoadedTab[roomName]] : null;
+
+                setTimeout(function () { //Change tab with delay to load everything in first
+                    socket.emit('changeTab', { "tab": currentLoadedTab[roomName], "userPItems": items });
+                }, 1000)
+
+                if (storedYoutubePlays[roomName]) {
+                    socket.emit('youtubeCommand',
+                        {
+                            "key": "loadVideo",
+                            "data": storedYoutubePlays[roomName].url,
+                            "time": storedYoutubePlays[roomName].time,
+                            "status": storedYoutubePlays[roomName].status
+                        }
+                    )
                 }
-                if (allRoomAttr[roomName]["roomPassword"] != "" && allRoomAttr[roomName]["roomPassword"] != roomPassword) {
-                    return callback("Wrong room password!");
+            }
+
+            if (isUserPItemsLoaded[roomName]) {
+                socket.emit('showHideUserPItems', isUserPItemsLoaded[roomName]);
+            }
+
+            if (currentLoadedPraesis[roomName]) {
+                socket.emit('loadSlide', currentLoadedPraesis[roomName]); //Load prasei after leaving room
+            }
+
+            //For chat and mgs in the same room
+            socket.on('message', function (msg) {
+                msg = escapeAllContentStrings(msg);
+                if (typeof (msg) == "string") {
+                    sendToHoleRoomButNotMe(roomName, socket.id, 'message', { "msg": msg, "id": socket.id, "username": userdata["username"] });
+                } else if (isModerator()) {
+                    var newMsg = msg.msg;
+                    var changendUserName = msg.changedName;
+                    sendToHoleRoom(roomName, 'message', { "msg": newMsg, "id": socket.id, "username": changendUserName });
                 }
+            });
 
-                userdata["username"] = content.username;
-                userdata["socketId"] = socket.id;
-                userdata["color"] = content.color;
+            //users is ready to talk, tell others to add him now
+            socket.on('connectionReady', function () {
+                sendToHoleRoomButNotMe(roomName, socket.id, 'addPeer', userdata);
+            });
 
-                allRoomAttr[roomName]["users"] = allRoomAttr[roomName]["users"] ? allRoomAttr[roomName]["users"] : {};
-                allRoomAttr[roomName]["users"][socket.id] = userdata;
-                allRoomAttr[roomName]["lastVisit"] = +new Date();
-
-                socket.join(roomName);
-
-                var cleanRooms = getAllRoomsWithoutPasswords();
-                socket.broadcast.emit('getAllRooms', cleanRooms);
-                socket.emit('getAllRooms', cleanRooms);
-
-                if (!currentLoadedTab[roomName]) {
-                    currentLoadedTab[roomName] = "#homeScreen";
+            socket.on('setStatus', function (status) {
+                status = escapeAllContentStrings(status);
+                if (typeof (userdata["stadien"]) == "undefined") {
+                    userdata["stadien"] = {};
                 }
-                //Send allPraesis in this room
-                socket.emit('loadPraesis', allPraesis[roomName]);
-                //Send all singleFiles in this room
-                socket.emit('sigleFilesTable', allSingleFiles[roomName]);
-
-                if (all3DObjs[roomName])
-                    socket.emit('load3DObjs', all3DObjs[roomName]);
-
-                if (url3dObjs[roomName])
-                    socket.emit('show3DObj', url3dObjs[roomName]);
-
-                var clients = io.sockets.adapter.rooms[roomName].sockets;
-
-                for (var i in clients) {
-                    socket.emit('addPeer', allUserAttr[i]);
+                var statKey = status.split("-");
+                if (statKey.length >= 2) {
+                    userdata["stadien"][statKey[1]] = status;
+                } else {
+                    userdata["stadien"][statKey[0]] = status;
                 }
+                sendToHoleRoom(roomName, 'setStatus', { "id": socket.id, "status": status });
+            });
 
-                if (currentLoadedTab[roomName]) {
-                    var items = userPItems[roomName] ? userPItems[roomName][currentLoadedTab[roomName]] : null;
-
-                    setTimeout(function () { //Change tab with delay to load everything in first
-                        socket.emit('changeTab', { "tab": currentLoadedTab[roomName], "userPItems": items });
-                    }, 1000)
-
-                    if (storedYoutubePlays[roomName]) {
-                        socket.emit('youtubeCommand',
-                            {
-                                "key": "loadVideo",
-                                "data": storedYoutubePlays[roomName].url,
-                                "time": storedYoutubePlays[roomName].time,
-                                "status": storedYoutubePlays[roomName].status
-                            }
-                        )
-                    }
+            socket.on('setModerator', function (socketIdToSet) {
+                socketIdToSet = escapeAllContentStrings(socketIdToSet);
+                if (!allRoomAttr[roomName]["moderator"] || allRoomAttr[roomName]["moderator"] == "0" || (allRoomAttr[roomName]["moderator"] == socket.id && socket.id != socketIdToSet)) {
+                    allRoomAttr[roomName]["moderator"] = socketIdToSet;
+                    sendToHoleRoom(roomName, 'setModerator', socketIdToSet);
+                    delete storedYoutubePlays[roomName];
                 }
+            });
 
-                if (isUserPItemsLoaded[roomName]) {
-                    socket.emit('showHideUserPItems', isUserPItemsLoaded[roomName]);
+            socket.on('setGetMicToUser', function (data) {
+                data = escapeAllContentStrings(data);
+                if (isModerator() || (data["userid"] == socket.id && data["mic"] == "not-mic")) { //Only allow moderator or removing own mic
+                    sendToHoleRoom(roomName, 'setGetMicToUser', data);
+
+                    //Save mic state
+                    allUserAttr[data["userid"]]["mic"] = data["mic"];
                 }
+            });
 
-                if (currentLoadedPraesis[roomName]) {
-                    socket.emit('loadSlide', currentLoadedPraesis[roomName]); //Load prasei after leaving room
+            socket.on('loadPraesis', function (n) {
+                sendToHoleRoom(roomName, 'loadPraesis', allPraesis[roomName]);
+            });
+
+            socket.on('addShowFileAsPresentation', function (filename) {
+                var praesiName = filename.replace(/[^a-zA-Z0-9 ]/g, "");
+                var content = {
+                    "name": praesiName,
+                    "slideid": 0
                 }
+                if (!allPraesis[roomName] || !allPraesis[roomName][praesiName]) {
+                    var path = "./public/praesis/" + roomName.split("###")[0] + "/" + praesiName
 
-                //For chat and mgs in the same room
-                socket.on('message', function (msg) {
-                    msg = escapeAllContentStrings(msg);
-                    if (typeof (msg) == "string") {
-                        sendToHoleRoomButNotMe(roomName, socket.id, 'message', { "msg": msg, "id": socket.id, "username": userdata["username"] });
-                    } else if (isModerator()) {
-                        var newMsg = msg.msg;
-                        var changendUserName = msg.changedName;
-                        sendToHoleRoom(roomName, 'message', { "msg": newMsg, "id": socket.id, "username": changendUserName });
-                    }
-                });
+                    fs.ensureDir(path, function (err) {
+                        if (err) {
+                            console.error(err);
+                            removePraesi(praesiName, roomName);
+                            return;
+                        }
+                        fs.createReadStream("./public/singlefiles/" + filename).pipe(fs.createWriteStream(path + '/' + filename));
 
-                //users is ready to talk, tell others to add him now
-                socket.on('connectionReady', function () {
-                    sendToHoleRoomButNotMe(roomName, socket.id, 'addPeer', userdata);
-                });
+                        allPraesis[roomName] = allPraesis[roomName] ? allPraesis[roomName] : {};
+                        allPraesis[roomName][praesiName] = {
+                            "name": praesiName,
+                            "type": "pdfPraesi",
+                            "filename": filename
+                        };
+                        sendToHoleRoom(roomName, 'loadPraesis', allPraesis[roomName]);
 
-                socket.on('setStatus', function (status) {
-                    status = escapeAllContentStrings(status);
-                    if (typeof (userdata["stadien"]) == "undefined") {
-                        userdata["stadien"] = {};
-                    }
-                    var statKey = status.split("-");
-                    if (statKey.length >= 2) {
-                        userdata["stadien"][statKey[1]] = status;
-                    } else {
-                        userdata["stadien"][statKey[0]] = status;
-                    }
-                    sendToHoleRoom(roomName, 'setStatus', { "id": socket.id, "status": status });
-                });
-
-                socket.on('setModerator', function (socketIdToSet) {
-                    socketIdToSet = escapeAllContentStrings(socketIdToSet);
-                    if (!allRoomAttr[roomName]["moderator"] || allRoomAttr[roomName]["moderator"] == "0" || (allRoomAttr[roomName]["moderator"] == socket.id && socket.id != socketIdToSet)) {
-                        allRoomAttr[roomName]["moderator"] = socketIdToSet;
-                        sendToHoleRoom(roomName, 'setModerator', socketIdToSet);
-                        delete storedYoutubePlays[roomName];
-                    }
-                });
-
-                socket.on('setGetMicToUser', function (data) {
-                    data = escapeAllContentStrings(data);
-                    if (isModerator() || (data["userid"] == socket.id && data["mic"] == "not-mic")) { //Only allow moderator or removing own mic
-                        sendToHoleRoom(roomName, 'setGetMicToUser', data);
-
-                        //Save mic state
-                        allUserAttr[data["userid"]]["mic"] = data["mic"];
-                    }
-                });
-
-                socket.on('loadPraesis', function (n) {
-                    sendToHoleRoom(roomName, 'loadPraesis', allPraesis[roomName]);
-                });
-
-                socket.on('addShowFileAsPresentation', function (filename) {
-                    var praesiName = filename.replace(/[^a-zA-Z0-9 ]/g, "");
-                    var content = {
-                        "name": praesiName,
-                        "slideid": 0
-                    }
-                    if (!allPraesis[roomName] || !allPraesis[roomName][praesiName]) {
-                        var path = "./public/praesis/" + roomName.split("###")[0] + "/" + praesiName
-
-                        fs.ensureDir(path, function (err) {
-                            if (err) {
-                                console.error(err);
-                                removePraesi(praesiName, roomName);
-                                return;
-                            }
-                            fs.createReadStream("./public/singlefiles/" + filename).pipe(fs.createWriteStream(path + '/' + filename));
-
-                            allPraesis[roomName] = allPraesis[roomName] ? allPraesis[roomName] : {};
-                            allPraesis[roomName][praesiName] = {
-                                "name": praesiName,
-                                "type": "pdfPraesi",
-                                "filename": filename
-                            };
-                            sendToHoleRoom(roomName, 'loadPraesis', allPraesis[roomName]);
-
-                            currentLoadedPraesis[roomName] = content;
-                            sendToHoleRoom(roomName, 'loadSlide', content);
-                            saveAllPraesis();
-                        });
-                    } else {
                         currentLoadedPraesis[roomName] = content;
                         sendToHoleRoom(roomName, 'loadSlide', content);
-                    }
-                });
-
-                socket.on('deletePraesi', function (name) {
-                    if (isModerator()) {
-                        removePraesi(name, roomName);
-                        delete allPraesis[roomName][name];
-                        delete currentLoadedPraesis[roomName];
                         saveAllPraesis();
-                        if (userPItems[roomName] && userPItems[roomName][currentLoadedTab[roomName]]) {
+                    });
+                } else {
+                    currentLoadedPraesis[roomName] = content;
+                    sendToHoleRoom(roomName, 'loadSlide', content);
+                }
+            });
+
+            socket.on('deletePraesi', function (name) {
+                if (isModerator()) {
+                    removePraesi(name, roomName);
+                    delete allPraesis[roomName][name];
+                    delete currentLoadedPraesis[roomName];
+                    saveAllPraesis();
+                    if (userPItems[roomName] && userPItems[roomName][currentLoadedTab[roomName]]) {
+                        var i = userPItems[roomName][currentLoadedTab[roomName]].length;
+                        while (i--) {
+                            if (userPItems[roomName][currentLoadedTab[roomName]][i]["praesiname"] == name) {
+                                userPItems[roomName][currentLoadedTab[roomName]].splice(i, 1);
+                            }
+                        }
+                    }
+                    sendToHoleRoom(roomName, 'loadPraesis', allPraesis[roomName]);
+                }
+            });
+
+            socket.on('loadSlide', function (content) {
+                content = escapeAllContentStrings(content);
+                if (isModerator()) {
+                    currentLoadedPraesis[roomName] = content;
+                    sendToHoleRoom(roomName, 'loadSlide', content);
+                }
+            });
+
+            socket.on('revealSlideKey', function (keycode) {
+                if (isModerator()) {
+                    sendToHoleRoom(roomName, 'revealSlideKey', keycode);
+                }
+            });
+
+            socket.on('cursorPosition', function (content) {
+                content = escapeAllContentStrings(content);
+                if (isModerator()) {
+                    sendToHoleRoom(roomName, 'cursorPosition', content);
+                }
+            });
+
+            socket.on('addUserPItem', function (content) {
+                content = escapeAllContentStrings(content);
+                content["userId"] = socket.id;
+                if (!userPItems[roomName]) {
+                    userPItems[roomName] = {};
+                }
+                if (!userPItems[roomName][currentLoadedTab[roomName]]) {
+                    userPItems[roomName][currentLoadedTab[roomName]] = [];
+                }
+                userPItems[roomName][currentLoadedTab[roomName]].push(content);
+                sendToHoleRoom(roomName, 'addUserPItem', content);
+            });
+
+            socket.on('changeUserPItemPosition', function (content) {
+                content = escapeAllContentStrings(content);
+                if (isModerator() || socket.id == content.userId || userdata.username == content.itemUsername) {
+                    sendToHoleRoom(roomName, 'changeUserPItemPosition', content);
+                }
+            });
+
+            socket.on('fixPItemPosition', function (content) {
+                content = escapeAllContentStrings(content);
+                if (isModerator() || socket.id == content.userId || userdata.username == content.itemUsername) {
+                    if (currentLoadedTab[roomName] && userPItems[roomName] && userPItems[roomName][currentLoadedTab[roomName]]) {
+                        for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
+                            if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == content["itemId"]) {
+                                userPItems[roomName][currentLoadedTab[roomName]][i]["posX"] = content["posX"];
+                                userPItems[roomName][currentLoadedTab[roomName]][i]["posY"] = content["posY"];
+                                sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
+                                return;
+                            }
+                        }
+                    }
+                }
+            });
+
+            socket.on('removeUserPItem', function (content) {
+                content = escapeAllContentStrings(content);
+                if (isModerator() || socket.id == content.userId || userdata.username == content.itemUsername) {
+                    for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
+                        if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == content["itemId"]) {
+                            sendToHoleRoom(roomName, 'removeUserPItem', content);
+                            userPItems[roomName][currentLoadedTab[roomName]].splice(i, 1);
+                            return;
+                        }
+                    }
+                }
+            });
+
+            socket.on('removeAllUserPItems', function (content) {
+                content = escapeAllContentStrings(content);
+                if (isModerator()) {
+                    sendToHoleRoom(roomName, 'removeAllUserPItems', content);
+                    if (userPItems[roomName]) {
+                        if (content) {
+                            var currentPraesiName = content["currentPraesiName"];
+                            var currentPraesiSlide = content["currentPraesiSlide"];
                             var i = userPItems[roomName][currentLoadedTab[roomName]].length;
                             while (i--) {
-                                if (userPItems[roomName][currentLoadedTab[roomName]][i]["praesiname"] == name) {
+                                if (userPItems[roomName][currentLoadedTab[roomName]][i]["praesiname"] == currentPraesiName && userPItems[roomName][currentLoadedTab[roomName]][i]["praesislide"] == currentPraesiSlide) {
+                                    userPItems[roomName][currentLoadedTab[roomName]].splice(i, 1);
+                                }
+                            }
+                        } else if (roomName && currentLoadedTab[roomName] && userPItems[roomName][currentLoadedTab[roomName]]) {
+                            var i = userPItems[roomName][currentLoadedTab[roomName]].length;
+                            while (i--) {
+                                if (!userPItems[roomName][currentLoadedTab[roomName]][i]["praesiname"] || !userPItems[roomName][currentLoadedTab[roomName]][i]["praesislide"]) {
                                     userPItems[roomName][currentLoadedTab[roomName]].splice(i, 1);
                                 }
                             }
                         }
-                        sendToHoleRoom(roomName, 'loadPraesis', allPraesis[roomName]);
                     }
-                });
+                }
+            });
 
-                socket.on('loadSlide', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (isModerator()) {
-                        currentLoadedPraesis[roomName] = content;
-                        sendToHoleRoom(roomName, 'loadSlide', content);
-                    }
-                });
+            socket.on('showHideUserPItems', function (content) {
+                content = escapeAllContentStrings(content);
+                if (isModerator()) {
+                    isUserPItemsLoaded[roomName] = content;
+                    sendToHoleRoom(roomName, 'showHideUserPItems', content);
+                }
+            });
 
-                socket.on('revealSlideKey', function (keycode) {
-                    if (isModerator()) {
-                        sendToHoleRoom(roomName, 'revealSlideKey', keycode);
-                    }
-                });
-
-                socket.on('cursorPosition', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (isModerator()) {
-                        sendToHoleRoom(roomName, 'cursorPosition', content);
-                    }
-                });
-
-                socket.on('addUserPItem', function (content) {
-                    content = escapeAllContentStrings(content);
-                    content["userId"] = socket.id;
-                    if (!userPItems[roomName]) {
-                        userPItems[roomName] = {};
-                    }
-                    if (!userPItems[roomName][currentLoadedTab[roomName]]) {
-                        userPItems[roomName][currentLoadedTab[roomName]] = [];
-                    }
-                    userPItems[roomName][currentLoadedTab[roomName]].push(content);
-                    sendToHoleRoom(roomName, 'addUserPItem', content);
-                });
-
-                socket.on('changeUserPItemPosition', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (isModerator() || socket.id == content.userId || userdata.username == content.itemUsername) {
-                        sendToHoleRoom(roomName, 'changeUserPItemPosition', content);
-                    }
-                });
-
-                socket.on('fixPItemPosition', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (isModerator() || socket.id == content.userId || userdata.username == content.itemUsername) {
-                        if (currentLoadedTab[roomName] && userPItems[roomName] && userPItems[roomName][currentLoadedTab[roomName]]) {
-                            for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
-                                if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == content["itemId"]) {
-                                    userPItems[roomName][currentLoadedTab[roomName]][i]["posX"] = content["posX"];
-                                    userPItems[roomName][currentLoadedTab[roomName]][i]["posY"] = content["posY"];
-                                    sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
-                                    return;
+            socket.on('youtubeCommand', function (content) {
+                content = escapeAllContentStrings(content);
+                if (isModerator()) {
+                    sendToHoleRoom(roomName, 'youtubeCommand', content);
+                    if (content.key == "status" && storedYoutubePlays[roomName]) {
+                        var ytInterval = null;
+                        if (content.data == 1) { //play
+                            storedYoutubePlays[roomName].time = content.time;
+                            ytInterval = setInterval(function () {
+                                if (storedYoutubePlays[roomName]) {
+                                    storedYoutubePlays[roomName].time++;
+                                } else {
+                                    clearInterval(ytInterval)
                                 }
-                            }
+                            }, 1000)
+                        } else {
+                            clearInterval(ytInterval)
+                        }
+                        storedYoutubePlays[roomName].status = content.data;
+                    } else if (content.key == "loadVideo") {
+                        storedYoutubePlays[roomName] = {
+                            url: content.data,
+                            status: 1,
+                            time: 0
                         }
                     }
-                });
+                }
+            });
 
-                socket.on('removeUserPItem', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (isModerator() || socket.id == content.userId || userdata.username == content.itemUsername) {
-                        for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
-                            if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == content["itemId"]) {
-                                sendToHoleRoom(roomName, 'removeUserPItem', content);
-                                userPItems[roomName][currentLoadedTab[roomName]].splice(i, 1);
-                                return;
-                            }
-                        }
+            socket.on('secondHandUp', function (content) {
+                content = escapeAllContentStrings(content);
+                if (!isModerator()) {
+                    content["senderId"] = socket.id;
+                }
+                sendToHoleRoom(roomName, 'secondHandUp', content);
+            });
+
+            socket.on('changeTab', function (content) {
+                content = escapeAllContentStrings(content);
+                if (isModerator()) {
+                    currentLoadedTab[roomName] = content;
+                    var items = userPItems[roomName] ? userPItems[roomName][currentLoadedTab[roomName]] : null;
+                    sendToHoleRoom(roomName, "changeTab", { "tab": content, "userPItems": items });
+                    if (content != "#homeScreen") {
+                        snake.stopGame(roomName);
                     }
-                });
+                    delete storedYoutubePlays[roomName];
+                }
+            });
 
-                socket.on('removeAllUserPItems', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (isModerator()) {
-                        sendToHoleRoom(roomName, 'removeAllUserPItems', content);
-                        if (userPItems[roomName]) {
-                            if (content) {
-                                var currentPraesiName = content["currentPraesiName"];
-                                var currentPraesiSlide = content["currentPraesiSlide"];
-                                var i = userPItems[roomName][currentLoadedTab[roomName]].length;
-                                while (i--) {
-                                    if (userPItems[roomName][currentLoadedTab[roomName]][i]["praesiname"] == currentPraesiName && userPItems[roomName][currentLoadedTab[roomName]][i]["praesislide"] == currentPraesiSlide) {
-                                        userPItems[roomName][currentLoadedTab[roomName]].splice(i, 1);
-                                    }
-                                }
-                            } else if (roomName && currentLoadedTab[roomName] && userPItems[roomName][currentLoadedTab[roomName]]) {
-                                var i = userPItems[roomName][currentLoadedTab[roomName]].length;
-                                while (i--) {
-                                    if (!userPItems[roomName][currentLoadedTab[roomName]][i]["praesiname"] || !userPItems[roomName][currentLoadedTab[roomName]][i]["praesislide"]) {
-                                        userPItems[roomName][currentLoadedTab[roomName]].splice(i, 1);
-                                    }
-                                }
-                            }
-                        }
+            socket.on('setUserPItemsText', function (content) {
+                content = escapeAllContentStrings(content);
+                content["userId"] = socket.id;
+                if (content.image) {
+                    sendToHoleRoom(roomName, "setUserPItemsText", content);
+                } else {
+                    sendToHoleRoomButNotMe(roomName, socket.id, "setUserPItemsText", content);
+                }
+
+                for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
+                    if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == content["itemId"]) {
+                        userPItems[roomName][currentLoadedTab[roomName]][i]["text"] = content["text"];
+                        sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
                     }
-                });
+                }
+            });
 
-                socket.on('showHideUserPItems', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (isModerator()) {
-                        isUserPItemsLoaded[roomName] = content;
-                        sendToHoleRoom(roomName, 'showHideUserPItems', content);
-                    }
-                });
+            socket.on('setUserColor', function (color) {
+                content = escapeAllContentStrings(content);
+                userdata["color"] = color;
+                sendToHoleRoom(roomName, 'setUserColor', { "userId": socket.id, "color": color });
+            });
 
-                socket.on('youtubeCommand', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (isModerator()) {
-                        sendToHoleRoom(roomName, 'youtubeCommand', content);
-                        if (content.key == "status" && storedYoutubePlays[roomName]) {
-                            var ytInterval = null;
-                            if (content.data == 1) { //play
-                                storedYoutubePlays[roomName].time = content.time;
-                                ytInterval = setInterval(function () {
-                                    if (storedYoutubePlays[roomName]) {
-                                        storedYoutubePlays[roomName].time++;
-                                    } else {
-                                        clearInterval(ytInterval)
-                                    }
-                                }, 1000)
-                            } else {
-                                clearInterval(ytInterval)
-                            }
-                            storedYoutubePlays[roomName].status = content.data;
-                        } else if (content.key == "loadVideo") {
-                            storedYoutubePlays[roomName] = {
-                                url: content.data,
-                                status: 1,
-                                time: 0
-                            }
-                        }
-                    }
-                });
+            socket.on('shareNotes', function (content) {
+                content = escapeAllContentStrings(content);
+                var text = content["text"];
+                var noteType = content["noteType"];
+                if (typeof (allSingleFiles[roomName]) == "undefined") {
+                    allSingleFiles[roomName] = {};
+                }
 
-                socket.on('secondHandUp', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (!isModerator()) {
-                        content["senderId"] = socket.id;
-                    }
-                    sendToHoleRoom(roomName, 'secondHandUp', content);
-                });
-
-                socket.on('changeTab', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (isModerator()) {
-                        currentLoadedTab[roomName] = content;
-                        var items = userPItems[roomName] ? userPItems[roomName][currentLoadedTab[roomName]] : null;
-                        sendToHoleRoom(roomName, "changeTab", { "tab": content, "userPItems": items });
-                        if (content != "#homeScreen") {
-                            snake.stopGame(roomName);
-                        }
-                        delete storedYoutubePlays[roomName];
-                    }
-                });
-
-                socket.on('setUserPItemsText', function (content) {
-                    content = escapeAllContentStrings(content);
-                    content["userId"] = socket.id;
-                    if (content.image) {
-                        sendToHoleRoom(roomName, "setUserPItemsText", content);
-                    } else {
-                        sendToHoleRoomButNotMe(roomName, socket.id, "setUserPItemsText", content);
+                var userInfo = allUserAttr[socket.id];
+                var filename = noteType + "" + (+new Date()) + ".txt";
+                fs.writeFile('./public/singlefiles/' + filename, text, function (err) {
+                    if (err) {
+                        return console.log("NoteSharFileSaveError", err);
                     }
 
-                    for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
-                        if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == content["itemId"]) {
-                            userPItems[roomName][currentLoadedTab[roomName]][i]["text"] = content["text"];
-                            sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
-                        }
-                    }
-                });
-
-                socket.on('setUserColor', function (color) {
-                    content = escapeAllContentStrings(content);
-                    userdata["color"] = color;
-                    sendToHoleRoom(roomName, 'setUserColor', { "userId": socket.id, "color": color });
-                });
-
-                socket.on('shareNotes', function (content) {
-                    content = escapeAllContentStrings(content);
-                    var text = content["text"];
-                    var noteType = content["noteType"];
-                    if (typeof (allSingleFiles[roomName]) == "undefined") {
-                        allSingleFiles[roomName] = {};
-                    }
-
-                    var userInfo = allUserAttr[socket.id];
-                    var filename = noteType + "" + (+new Date()) + ".txt";
-                    fs.writeFile('./public/singlefiles/' + filename, text, function (err) {
-                        if (err) {
-                            return console.log("NoteSharFileSaveError", err);
-                        }
-
-                        allSingleFiles[roomName][filename] = { "filename": filename, "username": userInfo.username, "date": +new Date() };
-                        sendToHoleRoom(roomName, 'sigleFilesTable', allSingleFiles[roomName]);
-                        saveSingleFileTable();
-                        console.log("NoteFileSaved!");
-                    });
-                });
-
-                socket.on('changeElementSize', function (content) {
-                    content = escapeAllContentStrings(content);
-                    content["userId"] = socket.id;
-                    sendToHoleRoomButNotMe(roomName, socket.id, "changeElementSize", content);
-                    for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
-                        if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == content["itemId"]) {
-                            userPItems[roomName][currentLoadedTab[roomName]][i]["width"] = content["width"];
-                            userPItems[roomName][currentLoadedTab[roomName]][i]["height"] = content["height"];
-                            sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
-                        }
-                    }
-                });
-
-                socket.on('3dPos', function (pos) {
-                    pos = escapeAllContentStrings(pos);
-                    if (isModerator()) {
-                        sendToHoleRoomButNotMe(roomName, socket.id, "3dPos", pos);
-                    }
-                });
-
-                socket.on('drawSomething', function (content) {
-                    content = escapeAllContentStrings(content);
-                    sendToHoleRoomButNotMe(roomName, socket.id, "drawSomething", content);
-                });
-
-                socket.on('sendEndDraw', function (content) {
-                    content = escapeAllContentStrings(content);
-                    var itemId = content["itemId"];
-                    var drawBuffer = content["drawBuffer"];
-                    for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
-                        if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == itemId) {
-                            if (!userPItems[roomName][currentLoadedTab[roomName]][i]["drawBuffer"]) {
-                                userPItems[roomName][currentLoadedTab[roomName]][i]["drawBuffer"] = [];
-                            }
-                            userPItems[roomName][currentLoadedTab[roomName]][i]["drawBuffer"] = userPItems[roomName][currentLoadedTab[roomName]][i]["drawBuffer"].concat(drawBuffer);
-                            sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
-                        }
-                    }
-                });
-
-                socket.on('drawWhiteboard', function (content) {
-                    content = escapeAllContentStrings(content);
-                    s_whiteboard.handleEventsAndData(content);
-                    delete content["wid"];
-                    sendToHoleRoomButNotMe(roomName, socket.id, "drawWhiteboard", content);
-                });
-
-                socket.on('lockUnLockCanvas', function (content) {
-                    content = escapeAllContentStrings(content);
-                    var itemId = content.itemId;
-                    var lockUnlock = content.lockUnlock;
-                    sendToHoleRoomButNotMe(roomName, socket.id, "lockUnLockCanvas", content);
-                    for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
-                        if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == itemId) {
-                            userPItems[roomName][currentLoadedTab[roomName]][i]["lockUnlock"] = lockUnlock;
-                            sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
-                            return;
-                        }
-                    }
-                });
-
-                socket.on('makeTransparent', function (content) {
-                    content = escapeAllContentStrings(content);
-                    var itemId = content.itemId;
-                    var transparent = content.transparent;
-                    sendToHoleRoom(roomName, "makeTransparent", content);
-                    for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
-                        if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == itemId) {
-                            userPItems[roomName][currentLoadedTab[roomName]][i]["transparent"] = transparent;
-                            sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
-                            return;
-                        }
-                    }
-                });
-
-                socket.on('removeSingleFileEX', function (fileName) {
-                    fileName = escapeAllContentStrings(fileName);
-                    fs.unlink("./public/singlefiles/" + fileName, function (err) {
-                        if (err) {
-                            console.error(err)
-                            return;
-                        }
-                    });
-                    if (allSingleFiles[roomName])
-                        delete allSingleFiles[roomName][fileName];
+                    allSingleFiles[roomName][filename] = { "filename": filename, "username": userInfo.username, "date": +new Date() };
                     sendToHoleRoom(roomName, 'sigleFilesTable', allSingleFiles[roomName]);
                     saveSingleFileTable();
+                    console.log("NoteFileSaved!");
                 });
+            });
 
-                socket.on('getSingleFileTable', function () {
-                    sendToHoleRoom(roomName, 'sigleFilesTable', allSingleFiles[roomName]);
-                });
-
-                socket.on('startStopSnake', function (trueFalse) {
-                    trueFalse = escapeAllContentStrings(trueFalse);
-                    snake.startStopSnake(socket.id, roomName, trueFalse);
-                });
-
-                socket.on('snakeKeyPressed', function (key) {
-                    key = escapeAllContentStrings(key);
-                    snake.snakeKeyPressed(socket.id, roomName, key);
-                });
-
-                socket.on('sendZoom', function (content) {
-                    content = escapeAllContentStrings(content);
-                    if (isModerator()) {
-                        sendToHoleRoom(roomName, 'sendZoom', content);
+            socket.on('changeElementSize', function (content) {
+                content = escapeAllContentStrings(content);
+                content["userId"] = socket.id;
+                sendToHoleRoomButNotMe(roomName, socket.id, "changeElementSize", content);
+                for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
+                    if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == content["itemId"]) {
+                        userPItems[roomName][currentLoadedTab[roomName]][i]["width"] = content["width"];
+                        userPItems[roomName][currentLoadedTab[roomName]][i]["height"] = content["height"];
+                        sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
                     }
-                });
+                }
+            });
 
+            socket.on('3dPos', function (pos) {
+                pos = escapeAllContentStrings(pos);
+                if (isModerator()) {
+                    sendToHoleRoomButNotMe(roomName, socket.id, "3dPos", pos);
+                }
+            });
 
-                socket.on('getUserInfos', function (id) {
-                    id = escapeAllContentStrings(id);
-                    var infos = allUserAttr[id];
-                    if (infos)
-                        socket.emit('getUserInfos', infos);
+            socket.on('drawSomething', function (content) {
+                content = escapeAllContentStrings(content);
+                sendToHoleRoomButNotMe(roomName, socket.id, "drawSomething", content);
+            });
 
-                    if (id == allRoomAttr[roomName].moderator) {
-                        socket.emit('setModerator', id);
-                    }
-                });
-
-                socket.on('putRemoteHandDown', function (id) {
-                    id = escapeAllContentStrings(id);
-                    if (isModerator()) {
-                        sendToHoleRoom(roomName, 'putRemoteHandDown', id);
-                    }
-                });
-
-                socket.on('delete3DObj', function (name) {
-                    name = escapeAllContentStrings(name);
-                    if (isModerator()) {
-                        if (all3DObjs[roomName]) {
-                            for (var i = 0; i < all3DObjs[roomName].length; i++) {
-                                if (all3DObjs[roomName][i]["name"] == name) {
-                                    all3DObjs[roomName].splice(i, 1);
-                                }
-                            }
-                            fs.remove('public/3dObjs/' + name, function (err) {
-                                if (err)
-                                    console.log("DELERROR:", err);
-                            });
-                            save3DObjs();
+            socket.on('sendEndDraw', function (content) {
+                content = escapeAllContentStrings(content);
+                var itemId = content["itemId"];
+                var drawBuffer = content["drawBuffer"];
+                for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
+                    if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == itemId) {
+                        if (!userPItems[roomName][currentLoadedTab[roomName]][i]["drawBuffer"]) {
+                            userPItems[roomName][currentLoadedTab[roomName]][i]["drawBuffer"] = [];
                         }
-                        sendToHoleRoom(roomName, 'load3DObjs', all3DObjs[roomName]);
+                        userPItems[roomName][currentLoadedTab[roomName]][i]["drawBuffer"] = userPItems[roomName][currentLoadedTab[roomName]][i]["drawBuffer"].concat(drawBuffer);
+                        sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
+                    }
+                }
+            });
+
+            socket.on('drawWhiteboard', function (content) {
+                content = escapeAllContentStrings(content);
+                s_whiteboard.handleEventsAndData(content);
+                delete content["wid"];
+                sendToHoleRoomButNotMe(roomName, socket.id, "drawWhiteboard", content);
+            });
+
+            socket.on('lockUnLockCanvas', function (content) {
+                content = escapeAllContentStrings(content);
+                var itemId = content.itemId;
+                var lockUnlock = content.lockUnlock;
+                sendToHoleRoomButNotMe(roomName, socket.id, "lockUnLockCanvas", content);
+                for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
+                    if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == itemId) {
+                        userPItems[roomName][currentLoadedTab[roomName]][i]["lockUnlock"] = lockUnlock;
+                        sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
+                        return;
+                    }
+                }
+            });
+
+            socket.on('makeTransparent', function (content) {
+                content = escapeAllContentStrings(content);
+                var itemId = content.itemId;
+                var transparent = content.transparent;
+                sendToHoleRoom(roomName, "makeTransparent", content);
+                for (var i = 0; i < userPItems[roomName][currentLoadedTab[roomName]].length; i++) {
+                    if (userPItems[roomName][currentLoadedTab[roomName]][i]["itemId"] == itemId) {
+                        userPItems[roomName][currentLoadedTab[roomName]][i]["transparent"] = transparent;
+                        sendToHoleRoom(roomName, 'updateUserPItem', userPItems[roomName][currentLoadedTab[roomName]][i]);
+                        return;
+                    }
+                }
+            });
+
+            socket.on('removeSingleFileEX', function (fileName) {
+                fileName = escapeAllContentStrings(fileName);
+                fs.unlink("./public/singlefiles/" + fileName, function (err) {
+                    if (err) {
+                        console.error(err)
+                        return;
                     }
                 });
+                if (allSingleFiles[roomName])
+                    delete allSingleFiles[roomName][fileName];
+                sendToHoleRoom(roomName, 'sigleFilesTable', allSingleFiles[roomName]);
+                saveSingleFileTable();
+            });
 
-                socket.on('show3DObj', function (url) {
-                    url = escapeAllContentStrings(url);
-                    if (isModerator()) {
-                        url3dObjs[roomName] = url;
-                        sendToHoleRoom(roomName, 'show3DObj', url);
+            socket.on('getSingleFileTable', function () {
+                sendToHoleRoom(roomName, 'sigleFilesTable', allSingleFiles[roomName]);
+            });
+
+            socket.on('startStopSnake', function (trueFalse) {
+                trueFalse = escapeAllContentStrings(trueFalse);
+                snake.startStopSnake(socket.id, roomName, trueFalse);
+            });
+
+            socket.on('snakeKeyPressed', function (key) {
+                key = escapeAllContentStrings(key);
+                snake.snakeKeyPressed(socket.id, roomName, key);
+            });
+
+            socket.on('sendZoom', function (content) {
+                content = escapeAllContentStrings(content);
+                if (isModerator()) {
+                    sendToHoleRoom(roomName, 'sendZoom', content);
+                }
+            });
+
+
+            socket.on('getUserInfos', function (id) {
+                id = escapeAllContentStrings(id);
+                var infos = allUserAttr[id];
+                if (infos)
+                    socket.emit('getUserInfos', infos);
+
+                if (id == allRoomAttr[roomName].moderator) {
+                    socket.emit('setModerator', id);
+                }
+            });
+
+            socket.on('putRemoteHandDown', function (id) {
+                id = escapeAllContentStrings(id);
+                if (isModerator()) {
+                    sendToHoleRoom(roomName, 'putRemoteHandDown', id);
+                }
+            });
+
+            socket.on('delete3DObj', function (name) {
+                name = escapeAllContentStrings(name);
+                if (isModerator()) {
+                    if (all3DObjs[roomName]) {
+                        for (var i = 0; i < all3DObjs[roomName].length; i++) {
+                            if (all3DObjs[roomName][i]["name"] == name) {
+                                all3DObjs[roomName].splice(i, 1);
+                            }
+                        }
+                        fs.remove('public/3dObjs/' + name, function (err) {
+                            if (err)
+                                console.log("DELERROR:", err);
+                        });
+                        save3DObjs();
                     }
-                });
+                    sendToHoleRoom(roomName, 'load3DObjs', all3DObjs[roomName]);
+                }
+            });
 
-                socket.on('getTimeStamp', function () {
-                    socket.emit('getTimeStamp', +new Date());
-                });
+            socket.on('show3DObj', function (url) {
+                url = escapeAllContentStrings(url);
+                if (isModerator()) {
+                    url3dObjs[roomName] = url;
+                    sendToHoleRoom(roomName, 'show3DObj', url);
+                }
+            });
 
+            socket.on('getTimeStamp', function () {
                 socket.emit('getTimeStamp', +new Date());
-                setInterval(function () {
-                    socket.emit('getTimeStamp', +new Date());
-                }, 60000);
+            });
 
-                socket.on('audioVolume', function (vol) {
-                    vol = escapeAllContentStrings(vol);
-                    sendToHoleRoom(roomName, 'audioVolume', { "userId": socket.id, "vol": vol });
-                });
+            socket.emit('getTimeStamp', +new Date());
+            setInterval(function () {
+                socket.emit('getTimeStamp', +new Date());
+            }, 60000);
 
-                callback()
-            } else {
-                callback('invalid user');
-            }// end of user validation
-        // } //end of checking today data
-    } else {
-        callback("invalid session attempt");
-    }
+            socket.on('audioVolume', function (vol) {
+                vol = escapeAllContentStrings(vol);
+                sendToHoleRoom(roomName, 'audioVolume', { "userId": socket.id, "vol": vol });
+            });
+
+            callback()
+            // } else {
+            //     callback('invalid user');
+            // }// end of user validation
+            // } //end of checking today data
+        } else {
+            callback("session not found");
+        }
     });
 
     function isModerator() {

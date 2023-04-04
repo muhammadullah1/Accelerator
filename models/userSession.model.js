@@ -30,10 +30,10 @@ const UserSession = sequelize.define('UserSession', {
 });
 
 // Define the associations between the models
-Session.belongsToMany(User, { through: UserSession });
-User.belongsToMany(Session, { through: UserSession });
-UserSession.belongsTo(User, { foreignKey: 'userId' });
-UserSession.belongsTo(Session, { foreignKey: 'sessionId' });
+// Session.belongsToMany(User, { through: UserSession });
+// User.belongsToMany(Session, { through: UserSession });
+// UserSession.belongsTo(User, { foreignKey: 'userId' });
+// UserSession.belongsTo(Session, { foreignKey: 'sessionId' });
 
 // create all tables in the database
 sequelize.sync()
