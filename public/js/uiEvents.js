@@ -38,6 +38,7 @@ $(function () { //Document ready
 		} else {
 			setUserAttr(username, password);
 			showPage("#accessMicPage");
+			
 
 			var constraints = { echoCancellation: { ideal: true } };
 			if (localStorage.getItem("prevAudioInputDevice")) {
@@ -57,7 +58,7 @@ $(function () { //Document ready
 				//Join a room directly if url get parameter is set   
 				// showPage("#roomPage");
 				// $("#roomList").css("display", "none");
-
+				showPage("#roomPage");
 				sendGetAllRooms();
 				var roomName = getQueryVariable("session");
 				var allrooms = [];
@@ -69,9 +70,9 @@ $(function () { //Document ready
 				setTimeout(() => {
 					const roomExists = allrooms.find(room => room.roomName === roomName);
 
-					console.log("ui session check roomExisrts", roomExists);
-					console.log("ui session check roomName", roomName);
-					console.log("ui session check roomExisrts", allrooms);
+					// console.log("ui session check roomExisrts", roomExists);
+					// console.log("ui session check roomName", roomName);
+					// console.log("ui session check roomExisrts", allrooms);
 
 					if (roomExists) {
 						$("#directRoomName").text(decodeURIComponent(roomName));
@@ -81,7 +82,7 @@ $(function () { //Document ready
 						});
 					}
 					else {
-						alert('session session not find');
+						alert('session not find');
 					}
 				}, 2000)
 			}
@@ -121,9 +122,9 @@ $(function () { //Document ready
 
 	/* MAIN PAGE */
 	$("#userTootldropBtn").click(function () {
-		if ($("#userToolDiv").css("display") == "none")
-			$("#userToolDiv").show();
-		else
+		// if ($("#userToolDiv").css("display") == "none")
+		// 	$("#userToolDiv").show();
+		// else
 			$("#userToolDiv").hide();
 	});
 
@@ -564,7 +565,7 @@ $(function () { //Document ready
 		// var link = window.location.href.split("/?")[0] + '/';
 		// window.location.replace(link);
 		window.location.reload();
-		  
+
 	});
 
 	$('#toggle_fullscreen').on('click', function () {
