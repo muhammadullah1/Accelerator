@@ -19,7 +19,7 @@ const queryVars = getQueryVariables(currentUrl.href);
 
 // calling user to validate
 $.ajax({
-	url: `http://localhost:8080/checkrole/${queryVars.userId}`,
+	url: `http://3.108.191.210:8080/checkrole/${queryVars.userId}`,
 	type: 'POST',
 	dataType: 'json',
 	async: false,
