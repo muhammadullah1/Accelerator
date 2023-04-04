@@ -538,13 +538,16 @@ io.sockets.on('connection', function (socket) {
         const isSessionUser = session?.sessionData?.id === session?.userSessionsData?.session_id && session?.userSessionsData?.user_id === session?.sessionUsers?.id;
 
 
-        const isDateMatched = session?.sessionData?.sessionDate === user?.sessionDate;
-        const isBetween = isCurrentTimeBetween(session?.sessionData?.start_time, session?.sessionData?.end_time, user?.startTime, user?.endTime);
+        // const isDateMatched = session?.sessionData?.sessionDate === user?.sessionDate;
+        // const isBetween = isCurrentTimeBetween(session?.sessionData?.start_time, session?.sessionData?.end_time, user?.startTime, user?.endTime);
+
+        // console.log('+++++++++++ datea machted ++++++++++', isDateMatched);
+        // console.log('+++++++++++ time matched ++++++++++', isBetween);
 
         // checking session data with today
-        if (!isDateMatched || !isBetween) {
-            callback('incorrect session timeing');
-        } else {
+        // if (!isDateMatched || !isBetween) {
+        //     callback('incorrect session timeing');
+        // } else {
 
             if (isSessionUser) {
 
@@ -1101,7 +1104,7 @@ io.sockets.on('connection', function (socket) {
             } else {
                 callback('invalid user');
             }// end of user validation
-        } //end of checking today data
+        // } //end of checking today data
     } else {
         callback("invalid session attempt");
     }
