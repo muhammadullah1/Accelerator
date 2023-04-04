@@ -1,6 +1,7 @@
 var pitemWebcamStreams = {};
 var allRooms = {};
 var role = null;
+var isTeacher = false;
 // getting data from url 
 var currentUrl = window.location;
 // console.log("get url data");
@@ -18,21 +19,31 @@ function getQueryVariables(url) {
 const queryVars = getQueryVariables(currentUrl.href);
 
 // calling user to validate
+if (queryVars && queryVars.teacherId !== null ) { 
 $.ajax({
-	url: `http://3.108.191.210:8080/checkrole/${queryVars.userId}`,
+	// url: `http://3.108.191.210:8080/checkrole/${queryVars.teacherId}`,
+	// url: `https://jsonplaceholder.typicode.com/todos/1`,
+	url: `http://127.0.0.1:8080/checkrole/${queryVars.teacherId}`,
 	type: 'POST',
+	// type: 'GET',
 	dataType: 'json',
 	async: false,
 	success: function (data) {
 		// Handle the data returned by the API
-		user = data;
+		console.log("data inside ============= ajz call", data)
+		if(data) {
+		isTeacher = true; 
+		} else {
+			isTeacher = false;
+		}
 	},
 	error: function (xhr, status, error) {
 		// alert('user not found');
 		// showPage('#invalidUserPage');
 	}
 });
-
+}
+console.log("------------------------------userrr-----------", isTeacher, queryVars )
 
 function addUserPItem(content) {
 	var userId = content.userId;
@@ -771,7 +782,7 @@ if (id == "0") {
 	  'Present Whiteboard <i class="fa fa-refresh"></i>' +
 	  '</div>' +
 	  '</div>');
-	if (user.role === 'teacher') {
+	if (isTeacher) {
 	  placeholder.click(function () {
 		sendModeratorId(ownSocketId);
 	  });
@@ -781,7 +792,7 @@ if (id == "0") {
 	  $("#moderatorDiv").append(placeholder);
 	}
   } else {
-	if (user.role === 'teacher') {
+	if (isTeacher) {
 	  $("#moderatorDiv").append($(".user-" + id));
 	  if ($(".user-" + id).find("video").length > 0) {
 		$(".user-" + id).find("video").get(0).play();
@@ -1835,7 +1846,7 @@ function renderMainPage() {
 	});
 
 
-	if (user.role === 'student') {
+	if (!isTeacher) {
 		$('#whiteboardContainer').css('pointer-events', 'none');
 		$('#whiteboardrotatedtool').css('display', 'none');
 		$('#saveAsImage').css('display', 'none');

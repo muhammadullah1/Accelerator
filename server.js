@@ -28,7 +28,7 @@ const Session = require('./models/session.model');
 // const User = require('./models/user.model');
 // const UserSession = require('./models/userSession.model');
 
-const { getSessions } = require('./services/session.service');
+// const { getSessions } = require('./services/session.service');
 
 //**********************/
 // cors error 
@@ -63,7 +63,7 @@ console.log('---------------------------------');
 
 // To synchronize all the models with the database
 
-dbConfig.sync({force : true})
+dbConfig.sync()
     .then(() => {
         console.log('All models were synchronized successfully.');
     })
@@ -296,16 +296,16 @@ app.get('/session', async (req, res) => {
 /*************************/
 /***chekcing  user role***/
 /*************************/
-app.post('/checkrole/:Id', async (req, res) => {
+app.post('/checkrole/:id', async (req, res) => {
     try {
-        const user = await Session.findOne({ where: { teacherId: req.params.Id } });
-        if (!user) {
-            return false;
-        } else {
-            res.send(true)
-        }
+        const user = await Session.findOne({ where: { teacherId: req.params.id } });
+        // if (!user) {
+        //     return false;
+        // } else {
+        //     res.send(true)
+        // }
         // const role = user.role;
-        // res.status(200).json({ role });
+        res.status(200).json(user);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });
