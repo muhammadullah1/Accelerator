@@ -55,8 +55,8 @@ $(function () { //Document ready
 
 			async function continueToRoomPage() {
 				//Join a room directly if url get parameter is set   
-				showPage("#roomPage");
-				$("#roomList").css("display", "none");
+				// showPage("#roomPage");
+				// $("#roomList").css("display", "none");
 
 				sendGetAllRooms();
 				var roomName = getQueryVariable("session");
@@ -69,6 +69,10 @@ $(function () { //Document ready
 				setTimeout(() => {
 					const roomExists = allrooms.find(room => room.roomName === roomName);
 
+					console.log("ui session check roomExisrts", roomExists);
+					console.log("ui session check roomName", roomName);
+					console.log("ui session check roomExisrts", allrooms);
+
 					if (roomExists) {
 						$("#directRoomName").text(decodeURIComponent(roomName));
 						$('#connectModal').modal({ backdrop: 'static', keyboard: false });
@@ -77,7 +81,7 @@ $(function () { //Document ready
 						});
 					}
 					else {
-						alert('session not find');
+						alert('session session not find');
 					}
 				}, 2000)
 			}
