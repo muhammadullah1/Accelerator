@@ -62,6 +62,7 @@ module.exports = {
 			}
 		}
 
+
 		setTimeout(function () {
 			fs.writeFile("./config/config.json", JSON.stringify(returnConfig, null, 4), function (err) { if (err) console.log(err) });
 
