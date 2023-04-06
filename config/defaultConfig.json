@@ -11,7 +11,7 @@
             ],
             "preferH264Codec": false
         },
-        "loadBalancerAuthKey": "02593374460595168",
+        "loadBalancerAuthKey": "03891764448031505",
         "isMaster": true,
         "masterURL": "https://yourAcceleratorURL.tl",
         "enableLocalMCU": true,
