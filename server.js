@@ -423,93 +423,13 @@ io.sockets.on('connection', function (socket) {
     socket.on('join', async function (content, callback) {
         const user = content.userData;
 
-        // function isCurrentTimeBetween(startTime, endTime, urlStartTime, urlEndTime) {
-        //     // Convert time strings to 24-hour format
-        //     startTime = convertTo24HourFormat(startTime);
-        //     endTime = convertTo24HourFormat(endTime);
-        //     urlStartTime = convertTo24HourFormat(urlStartTime);
-        //     urlEndTime = convertTo24HourFormat(urlEndTime);
-
-        //     // Convert time strings to Date objects with today's date
-        //     const currentDate = new Date();
-        //     const start = new Date(`${currentDate.toDateString()} ${startTime}`);
-        //     const end = new Date(`${currentDate.toDateString()} ${endTime}`);
-        //     const urlStart = new Date(`${currentDate.toDateString()} ${urlStartTime}`);
-        //     const urlEnd = new Date(`${currentDate.toDateString()} ${urlEndTime}`);
-
-        //     // Get the current time as milliseconds since epoch
-        //     const currentTime = currentDate.getTime();
-
-        //     // Get the start and end times as milliseconds since epoch
-        //     const startMs = start.getTime();
-        //     const endMs = end.getTime();
-        //     const urlStartMs = urlStart.getTime();
-        //     const urlEndMs = urlEnd.getTime();
-
-        //     // Check if the current time is between the start and end times
-        //     const isBetween = currentTime >= startMs && currentTime <= endMs;
-
-        //     // Check if the URL start and end times are between the start and end times
-        //     const urlIsBetween = urlStartMs >= startMs && urlEndMs <= endMs;
-
-        //     // Return true if both conditions are met
-        //     return isBetween && urlIsBetween;
-        // }
-
-        // function convertTo24HourFormat(timeString) {
-        //     // Remove any spaces from the time string
-        //     timeString = timeString.replace(/\s+/g, '');
-
-        //     // Split the time string into hours and minutes
-        //     const [time, period] = timeString.split(/(?<=\d)(AM|PM)/i);
-
-        //     // Split the hours and minutes
-        //     const [hours, minutes] = time.split(':').map(Number);
-
-        //     // Convert hours to 24-hour format
-        //     let newHours = hours;
-        //     if (period.toUpperCase() === 'PM' && hours !== 12) {
-        //         newHours += 12;
-        //     } else if (period.toUpperCase() === 'AM' && hours === 12) {
-        //         newHours = 0;
-        //     }
-
-        //     // Pad single digit hours and minutes with leading zeros
-        //     const paddedHours = newHours.toString().padStart(2, '0');
-        //     const paddedMinutes = minutes.toString().padStart(2, '0');
-
-        //     // Return the time string in 24-hour format
-        //     return `${paddedHours}:${paddedMinutes}`;
-        // }
 
         async function getSessions(user) {
             try {
                 const sessions = await Session.findOne({
                     where: { deleted_at: null, session_id: user.sessionId, classes_id: user.classesId },
                 });
-                // const sessionId = await sessions?.dataValues?.id;
-                // if(sessionId === undefined ) {
-                //     callback('session not exist')
-                // } else {
-                // const userSessions = await UserSession.findOne({
-                //     attributes: ['id', 'session_id', 'user_id'],
-                //     where: { deleted_at: null, session_id: sessionId },
-                //     include: {
-                //         model: User,
-                //         attributes: ['id', 'user_id'],
-                //         where: { deleted_at: null, user_id: user.userId },
-                //         required: true, // This makes it a left join
-                //     },
-                // });
-
-
-                // const sessionData = sessions?.dataValues;
-                // const userSessionsData = {
-                //     id: userSessions?.dataValues?.id,
-                //     session_id: userSessions?.dataValues?.session_id,
-                //     user_id: userSessions?.dataValues?.user_id,
-                // };
-                // const sessionUsers = userSessions?.dataValues?.User?.dataValues;
+                
 
                 return sessions?.dataValues
                 // };
@@ -525,22 +445,6 @@ io.sockets.on('connection', function (socket) {
         console.log(session);
 
         if (typeof session !== 'undefined') {
-
-            // const isSessionUser = session?.sessionData?.id === session?.userSessionsData?.session_id && session?.userSessionsData?.user_id === session?.sessionUsers?.id;
-
-
-            // const isDateMatched = session?.sessionData?.sessionDate === user?.sessionDate;
-            // const isBetween = isCurrentTimeBetween(session?.sessionData?.start_time, session?.sessionData?.end_time, user?.startTime, user?.endTime);
-
-            // console.log('+++++++++++ datea machted ++++++++++', isDateMatched);
-            // console.log('+++++++++++ time matched ++++++++++', isBetween);
-
-            // checking session data with today
-            // if (!isDateMatched || !isBetween) {
-            //     callback('incorrect session timeing');
-            // } else {
-
-            // if (isSessionUser) {
 
             content = escapeAllContentStrings(content);
             //console.log("[" + socket.id + "] join ", content);
