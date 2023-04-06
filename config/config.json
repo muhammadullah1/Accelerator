@@ -13,7 +13,7 @@
         },
         "loadBalancerAuthKey": "07883630907325416",
         "isMaster": true,
-        "masterURL": "https://yourAcceleratorURL.tl",
+        "masterURL": "https://whiteboard.elmsuite.org/",
         "enableLocalMCU": true,
         "enableGlobalVideoProcessing": false,
         "processingFPS": 20,
