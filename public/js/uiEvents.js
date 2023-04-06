@@ -83,6 +83,7 @@ $(function () { //Document ready
 					}
 					else {
 						alert('session not find');
+						showPage("#invalidUserPage");
 					}
 				}, 2000)
 			}

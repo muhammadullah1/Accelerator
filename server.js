@@ -33,10 +33,15 @@ const Session = require('./models/session.model');
 
 //**********************/
 // cors error 
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://whiteboard.elmsuite.org/session');
-    next();
-});
+app.use(cors());
+app.use(cors({
+    origin: 'https://whiteboard.elmsuite.org'
+  }));
+  
+// app.use((req, res, next) => {
+//     res.setHeader('Access-Control-Allow-Origin', 'https://whiteboard.elmsuite.org');
+//     next();
+// });
 
 //***************************** */
 // swager
@@ -202,17 +207,9 @@ io.sockets.on('connection', async function (socket) {
             sessionName: Joi.string().required(),
             sessionId: Joi.string().required(),
             classesId: Joi.string().required(),
-            creater: Joi.string().required(),
+            creater: Joi.string().optional(),
             teacherId: Joi.string().required(),
             teacherName: Joi.string().optional(),
-            // users: Joi.array().items(Joi.object({
-            //     name: Joi.string().required(),
-            //     userId: Joi.string().uuid().required(),
-            //     role: Joi.string().valid('student', 'teacher').required()
-            // })).min(1).required(),
-            // sessionDate: Joi.string().required(),
-            // startTime: Joi.string().required(),
-            // endTime: Joi.string().required(),
             deletedBy: Joi.string().optional()
         });
 
