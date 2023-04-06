@@ -20,6 +20,7 @@ const dbConfig = require('./config/databaseConfig.js');
 const { Sequelize } = require('sequelize');
 const app = express();
 app.use(express.json());
+const cors = require('cors');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.raw());
@@ -33,7 +34,7 @@ const Session = require('./models/session.model');
 //**********************/
 // cors error 
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'http://3.108.191.210:8080');
+    res.setHeader('Access-Control-Allow-Origin', 'https://whiteboard.elmsuite.org/session');
     next();
 });
 
