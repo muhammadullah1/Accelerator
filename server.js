@@ -287,7 +287,9 @@ app.get('/session', async (req, res) => {
         res.status(200).json(sessions);
     } catch (error) {
         console.error(error);
-        throw new Error('Server error');
+        res.status(200).json({
+           message: "no session found"
+        })
     }
 });
 
@@ -1609,4 +1611,4 @@ function escapeAllContentStrings(content, cnt) {
     return content;
 }
 
-//docker 1.docker build -t acc . and to run 2.run docker run -p 8080:8080 acc
+//docker 1.docker compse up.  2.docker compose up
