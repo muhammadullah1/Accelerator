@@ -22,15 +22,15 @@ const queryVars = getQueryVariables(currentUrl.href);
 if (queryVars && queryVars.teacherId !== null ) { 
 $.ajax({
 	// url: `http://3.108.191.210:8080/checkrole/${queryVars.teacherId}`,
-	url: `https://jsonplaceholder.typicode.com/todos/1`,
-	// url: `https://whiteboard.elmsuite.org/checkrole/${queryVars.teacherId}`,
-	// type: 'POST',
-	type: 'GET',
+	// url: `https://jsonplaceholder.typicode.com/todos/1`,
+	url: `https://whiteboard.elmsuite.org/checkrole/${queryVars.teacherId}`,
+	type: 'POST',
+	// type: 'GET',
 	dataType: 'json',
 	async: false,
 	success: function (data) {
 		// Handle the data returned by the API
-		console.log("data inside ============= ajz call", data)
+		// console.log("data inside ============= ajz call", data)
 		if(data) {
 		isTeacher = true; 
 		} else {
@@ -43,7 +43,7 @@ $.ajax({
 	}
 });
 }
-console.log("------------------------------userrr-----------", isTeacher, queryVars )
+// console.log("------------------------------userrr-----------", isTeacher, queryVars )
 
 function addUserPItem(content) {
 	var userId = content.userId;

@@ -35,7 +35,7 @@ const Session = require('./models/session.model');
 // cors error 
 app.use(cors());
 app.use(cors({
-    origin: 'https://whiteboard.elmsuite.org'
+    origin: 'https://whiteboard.elmsanad.sa'    
   }));
   
 // app.use((req, res, next) => {
