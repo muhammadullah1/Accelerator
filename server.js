@@ -35,9 +35,9 @@ const Session = require('./models/session.model');
 // cors error 
 app.use(cors());
 app.use(cors({
-    origin: 'https://whiteboard.elmsanad.sa'    
-  }));
-  
+    origin: 'https://whiteboard.elmsanad.sa'
+}));
+
 // app.use((req, res, next) => {
 //     res.setHeader('Access-Control-Allow-Origin', 'https://whiteboard.elmsuite.org');
 //     next();
@@ -288,7 +288,7 @@ app.get('/session', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(200).json({
-           message: "no session found"
+            message: "no session found"
         })
     }
 });
@@ -428,7 +428,7 @@ io.sockets.on('connection', function (socket) {
                 const sessions = await Session.findOne({
                     where: { deleted_at: null, session_id: user.sessionId, classes_id: user.classesId },
                 });
-                
+
 
                 return sessions?.dataValues
                 // };
