@@ -23,7 +23,7 @@ if (queryVars && queryVars.teacherId !== null ) {
 $.ajax({
 	// url: `http://3.108.191.210:8080/checkrole/${queryVars.teacherId}`,
 	// url: `https://jsonplaceholder.typicode.com/todos/1`,
-	url: `https://whiteboard.elmsuite.org/checkrole/${queryVars.teacherId}`,
+	url: `https://https://whiteboard.elmsanad.sa/checkrole/${queryVars.teacherId}`,
 	type: 'POST',
 	// type: 'GET',
 	dataType: 'json',

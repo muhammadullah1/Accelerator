@@ -287,9 +287,7 @@ app.get('/session', async (req, res) => {
         res.status(200).json(sessions);
     } catch (error) {
         console.error(error);
-        res.status(200).json({
-            message: "no session found"
-        })
+        res.status(500).json({ message: 'Server error' });
     }
 });
 
