@@ -113,3 +113,4 @@ dist
 # /config
 /public/js/clientConfig.js
 .idea/
+/data
