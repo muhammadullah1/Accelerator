@@ -60,7 +60,8 @@ $(function () { //Document ready
 				// $("#roomList").css("display", "none");
 				showPage("#roomPage");
 				sendGetAllRooms();
-				var roomName = getQueryVariable("session");
+				var roomName = getQueryVariable("sessionId");
+				var ActualRoomName = getQueryVariable("session");
 				var allrooms = [];
 				// get all room
 				signaling_socket.on('getAllRooms', async function (data) {
@@ -75,7 +76,7 @@ $(function () { //Document ready
 					// console.log("ui session check roomExisrts", allrooms);
 
 					if (roomExists) {
-						$("#directRoomName").text(decodeURIComponent(roomName));
+						$("#directRoomName").text(decodeURIComponent(ActualRoomName));
 						$('#connectModal').modal({ backdrop: 'static', keyboard: false });
 						$('#connectModal').find("#acceptDirectConnect").click(function () {
 							$($("#roomListContent").find(".roomLaBle[roomName=" + escape(decodeURIComponent(roomName)).replace(/[^a-zA-Z0-9 ]/g, "") + "]")[0]).click();

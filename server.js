@@ -200,7 +200,7 @@ setTimeout(function () {
 
 io.sockets.on('connection', async function (socket) {
     app.post('/session', async (req, res) => {
-        const { sessionName, roomPassword = '', creater } = req.body;
+        const { sessionName, roomPassword = '', creater, sessionId } = req.body;
 
         // Define Joi validation schema
         const schema = Joi.object({
@@ -222,8 +222,9 @@ io.sockets.on('connection', async function (socket) {
                 return;
             };
 
-            const trimmedRoomName = sessionName.trim();
-            const formattedRoomName = trimmedRoomName.replace(/\s+/g, '_');
+            // const trimmedRoomName = sessionName.trim();
+            const trimmedRoomName = sessionId;
+            const formattedRoomName = trimmedRoomName; //.replace(/\s+/g, '_');
 
             socket.emit("createRoom", {
                 "roomName": formattedRoomName,
@@ -244,7 +245,8 @@ io.sockets.on('connection', async function (socket) {
                 res.status(400).send("Invalid Roomname!");
             } else if (allRoomAttr[formattedRoomName]) {
                 res.status(409).send({
-                    error: "A room with this name already exists!"
+                    error: "A room with this SessionId already exists!"
+                    // data : allRoomAttr
                 });
             } else {
                 allRoomAttr[formattedRoomName] = {
@@ -438,8 +440,8 @@ io.sockets.on('connection', function (socket) {
 
         const session = await getSessions(user);
 
-        console.log('+++++++++++ db query result ++++++++++');
-        console.log(session);
+        // console.log('+++++++++++ db query result ++++++++++');
+        // console.log(session);
 
         if (typeof session !== 'undefined') {
 
